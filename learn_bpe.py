@@ -176,10 +176,11 @@ if __name__ == '__main__':
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
     for i in range(args.symbols):
-        most_frequent = max(stats, key=stats.get)
+        if stats:
+            most_frequent = max(stats, key=stats.get)
 
         # we probably missed the best pair because of pruning; go back to full statistics
-        if i and stats[most_frequent] < threshold:
+        if not stats or (i and stats[most_frequent] < threshold):
             prune_stats(stats, big_stats, threshold)
             stats = copy.deepcopy(big_stats)
             most_frequent = max(stats, key=stats.get)
