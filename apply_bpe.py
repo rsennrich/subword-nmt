@@ -27,6 +27,28 @@ if sys.version_info < (3, 0):
   sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
   sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
 
+class BPE(object):
+
+    def __init__(self, codes, separator='@@'):
+        self.bpe_codes = [tuple(item.split()) for item in codes]
+        # some hacking to deal with duplicates (only consider first instance)
+        self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
+
+        self.separator = separator
+
+    def segment(self, sentence):
+        """segment single sentence (whitespace-tokenized string) with BPE encoding"""
+
+        output = []
+        for word in sentence.split():
+            new_word = encode(word, self.bpe_codes)
+
+            for item in new_word[:-1]:
+                output.append(item + self.separator)
+            output.append(new_word[-1])
+
+        return ' '.join(output)
+
 def create_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -115,17 +137,8 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
-    bpe_codes = [tuple(item.split()) for item in args.codes]
-
-    # some hacking to deal with duplicates (only consider first instance)
-    bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(bpe_codes)))])
+    bpe = BPE(args.codes, args.separator)
 
     for line in args.input:
-        for word in line.split():
-            new_word = encode(word, bpe_codes)
-
-            for item in new_word[:-1]:
-                args.output.write(item + args.separator + ' ')
-            args.output.write(new_word[-1] + ' ')
-
+        args.output.write(bpe.segment(line))
         args.output.write('\n')
