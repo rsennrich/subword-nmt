@@ -46,10 +46,6 @@ class BPE(object):
             for item in new_word[:-1]:
                 output.append(item + self.separator)
             output.append(new_word[-1])
-        print '!!!!!!!!!!!!!!'
-        print sentence
-        print output
-        print '!!!!!!!!!!!!!!'
 
         return ' '.join(output)
 
