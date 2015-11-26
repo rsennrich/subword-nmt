@@ -140,5 +140,5 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.separator)
 
     for line in args.input:
-        args.output.write(bpe.segment(line))
+        args.output.write(bpe.segment(line).strip())
         args.output.write('\n')
