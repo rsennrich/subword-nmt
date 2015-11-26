@@ -30,7 +30,7 @@ if sys.version_info < (3, 0):
 class BPE(object):
 
     def __init__(self, codes, separator='@@'):
-        self.bpe_codes = [tuple(item.strip().split()) for item in codes]
+        self.bpe_codes = [tuple(item.split()) for item in codes]
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
 
@@ -40,12 +40,16 @@ class BPE(object):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
 
         output = []
-        for word in sentence.strip().split():
+        for word in sentence.split():
             new_word = encode(word, self.bpe_codes)
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
             output.append(new_word[-1])
+        print '!!!!!!!!!!!!!!'
+        print sentence
+        print output
+        print '!!!!!!!!!!!!!!'
 
         return ' '.join(output)
 
@@ -140,5 +144,5 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.separator)
 
     for line in args.input:
-        args.output.write(bpe.segment(line))
+        args.output.write(bpe.segment(line).strip())
         args.output.write('\n')
