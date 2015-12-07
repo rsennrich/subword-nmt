@@ -45,6 +45,9 @@ def create_parser():
     parser.add_argument(
         '--symbols', '-s', type=int, default=10000,
         help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
+    parser.add_argument(
+        '--verbose', '-v', action="store_true",
+        help="verbose mode.")
 
     return parser
 
@@ -192,7 +195,8 @@ if __name__ == '__main__':
             sys.stderr.write('no pair has frequency > 1. Stopping\n')
             break
 
-        sys.stderr.write('pair {0}: {1} {2} -> {1}{2} (frequency {3})\n'.format(i, most_frequent[0], most_frequent[1], stats[most_frequent]))
+        if args.verbose:
+            sys.stderr.write('pair {0}: {1} {2} -> {1}{2} (frequency {3})\n'.format(i, most_frequent[0], most_frequent[1], stats[most_frequent]))
         args.output.write('{0} {1}\n'.format(*most_frequent))
         changes = replace_pair(most_frequent, sorted_vocab, indices)
         update_pair_statistics(most_frequent, changes, stats, indices)
