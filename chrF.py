@@ -93,7 +93,7 @@ def f1(correct, total_hyp, total_ref, max_length, beta=3, smooth=0):
     recall = 0
 
     for i in range(max_length):
-      if total_hyp[i] + smooth:
+      if total_hyp[i] + smooth and total_ref[i] + smooth:
         precision += (correct[i] + smooth) / (total_hyp[i] + smooth)
         recall += (correct[i] + smooth) / (total_ref[i] + smooth)
 
