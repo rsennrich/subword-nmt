@@ -135,6 +135,7 @@ def replace_pair(pair, vocab, indices):
     """Replace all occurrences of a symbol pair ('A', 'B') with a new symbol 'AB'"""
     first, second = pair
     pair_str = ''.join(pair)
+    pair_str = pair_str.replace('\\','\\\\')
     changes = []
     pattern = re.compile(r'(?<!\S)' + re.escape(first + ' ' + second) + r'(?!\S)')
     for j, freq in indices[pair].items():
