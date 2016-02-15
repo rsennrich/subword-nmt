@@ -138,7 +138,11 @@ def replace_pair(pair, vocab, indices):
     pair_str = pair_str.replace('\\','\\\\')
     changes = []
     pattern = re.compile(r'(?<!\S)' + re.escape(first + ' ' + second) + r'(?!\S)')
-    for j, freq in indices[pair].items():
+    if sys.version_info < (3, 0):
+        iterator = indices[pair].iteritems()
+    else:
+        iterator = indices[pair].items()
+    for j, freq in iterator:
         if freq < 1:
             continue
         word, freq = vocab[j]
