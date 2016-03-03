@@ -13,7 +13,9 @@ Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translati
 """
 
 
-import re, collections
+import re
+import sys
+import collections
 
 def get_stats(vocab):
   pairs = collections.defaultdict(int)
@@ -38,5 +40,8 @@ num_merges = 15
 for i in range(num_merges):
   pairs = get_stats(vocab)
   best = max(pairs, key=pairs.get)
+  if pairs[best] < 2:
+     sys.stderr.write('no pair has frequency > 1. Stopping\n')
+     break
   vocab = merge_vocab(best, vocab)
   print(best)
