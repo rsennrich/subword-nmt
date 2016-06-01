@@ -7,7 +7,8 @@ Unlike the original BPE, it does not compress the plain text, but can be used to
 of a text to a configurable number of symbols, with only a small increase in the number of tokens.
 
 Reference:
-Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translation of Rare Words with Subword Units.
+Rico Sennrich, Barry Haddow and Alexandra Birch (2016). Neural Machine Translation of Rare Words with Subword Units.
+Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
 """
 
 from __future__ import unicode_literals

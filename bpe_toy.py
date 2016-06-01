@@ -9,7 +9,8 @@ This is an (inefficient) toy implementation that shows the algorithm. For proces
 indexing and incremental updates can be used to speed up the implementation (see learn_bpe.py).
 
 Reference:
-Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translation of Rare Words with Subword Units.
+Rico Sennrich, Barry Haddow and Alexandra Birch (2016). Neural Machine Translation of Rare Words with Subword Units.
+Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
 """
 
 

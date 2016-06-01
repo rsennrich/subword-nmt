@@ -7,7 +7,8 @@ The text will not be smaller, but use only a fixed vocabulary, with rare words
 encoded as variable-length sequences of subword units.
 
 Reference:
-Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translation of Rare Words with Subword Units.
+Rico Sennrich, Barry Haddow and Alexandra Birch (2016). Neural Machine Translation of Rare Words with Subword Units.
+Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
 """
 
 from __future__ import unicode_literals, division

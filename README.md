@@ -29,6 +29,6 @@ PUBLICATIONS
 
 The segmentation methods are described in:
 
-Rico Sennrich, Barry Haddow and Alexandra Birch (2015):
+Rico Sennrich, Barry Haddow and Alexandra Birch (2016):
     Neural Machine Translation of Rare Words with Subword Units
-    http://arxiv.org/abs/1508.07909
+    Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
