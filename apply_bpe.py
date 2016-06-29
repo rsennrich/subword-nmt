@@ -7,8 +7,7 @@ The text will not be smaller, but use only a fixed vocabulary, with rare words
 encoded as variable-length sequences of subword units.
 
 Reference:
-Rico Sennrich, Barry Haddow and Alexandra Birch (2016). Neural Machine Translation of Rare Words with Subword Units.
-Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
+Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translation of Rare Words with Subword Units.
 """
 
 from __future__ import unicode_literals, division
@@ -28,10 +27,17 @@ if sys.version_info < (3, 0):
   sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
   sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
 
+import codecs
+
 class BPE(object):
 
-    def __init__(self, codes, separator='@@'):
-        self.bpe_codes = [tuple(item.split()) for item in codes]
+    def __init__(self, codes, separator='@@'):            
+        
+        #Ahmed: Hack -- reopening the bpe file to change the encoding to utf-8 (to read arabic). 
+                    #setting a customized encoding in argparser is not supported in python 2.x
+        with codecs.open(codes.name, encoding='utf-8') as codes:
+            self.bpe_codes = [tuple(item.split()) for item in codes]
+         
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
 
@@ -136,8 +142,8 @@ def encode(orig, bpe_codes, cache={}):
 
 if __name__ == '__main__':
     parser = create_parser()
-    args = parser.parse_args()
-
+    args = parser.parse_args()    
+    
     bpe = BPE(args.codes, args.separator)
 
     for line in args.input:
