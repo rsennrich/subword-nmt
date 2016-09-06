@@ -8,6 +8,7 @@ encoded as variable-length sequences of subword units.
 
 Reference:
 Rico Sennrich, Barry Haddow and Alexandra Birch (2015). Neural Machine Translation of Rare Words with Subword Units.
+Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
 """
 
 from __future__ import unicode_literals, division
@@ -33,8 +34,6 @@ class BPE(object):
 
     def __init__(self, codes, separator='@@'):            
         
-        #Ahmed: Hack -- reopening the bpe file to change the encoding to utf-8 (to read arabic). 
-                    #setting a customized encoding in argparser is not supported in python 2.x
         with codecs.open(codes.name, encoding='utf-8') as codes:
             self.bpe_codes = [tuple(item.split()) for item in codes]
          
@@ -142,8 +141,8 @@ def encode(orig, bpe_codes, cache={}):
 
 if __name__ == '__main__':
     parser = create_parser()
-    args = parser.parse_args()    
-    
+    args = parser.parse_args()
+
     bpe = BPE(args.codes, args.separator)
 
     for line in args.input:
