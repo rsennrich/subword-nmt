@@ -47,6 +47,9 @@ def create_parser():
         '--symbols', '-s', type=int, default=10000,
         help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
     parser.add_argument(
+        '--min-frequency', type=int, default=2, metavar='FREQ',
+        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
+    parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
 
@@ -197,8 +200,8 @@ if __name__ == '__main__':
             threshold = stats[most_frequent] * i/(i+10000.0)
             prune_stats(stats, big_stats, threshold)
 
-        if stats[most_frequent] < 2:
-            sys.stderr.write('no pair has frequency > 1. Stopping\n')
+        if stats[most_frequent] < args.min_frequency:
+            sys.stderr.write('no pair has frequency >= {0}. Stopping\n'.format(args.min_frequency))
             break
 
         if args.verbose:
