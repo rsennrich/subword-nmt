@@ -60,7 +60,7 @@ def create_parser():
 
     return parser
 
-def extract_ngrams(words, max_length=4, spaces=False):
+def extract_ngrams(words, max_length=6, spaces=False):
 
     if not spaces:
         words = ''.join(words.split())
