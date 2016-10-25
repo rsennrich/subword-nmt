@@ -87,7 +87,7 @@ def get_correct(ngrams_ref, ngrams_test, correct, total):
     return correct, total
 
 
-def f1(correct, total_hyp, total_ref, max_length, beta=3, smooth=0):
+def f1(correct, total_hyp, total_ref, max_length, beta=2, smooth=0):
 
     precision = 0
     recall = 0
