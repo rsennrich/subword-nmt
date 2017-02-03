@@ -179,8 +179,13 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    # version 0.2 changes the handling of the end-of-word token ('</w>');
+    # version numbering allows bckward compatibility
+    args.output.write('#version: 0.2\n')
+
     vocab = get_vocabulary(args.input)
-    vocab = dict([(tuple(x)+('</w>',) ,y) for (x,y) in vocab.items()])
+
+    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
     stats, indices = get_pair_statistics(sorted_vocab)

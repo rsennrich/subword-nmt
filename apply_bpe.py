@@ -16,6 +16,8 @@ from __future__ import unicode_literals, division
 import sys
 import codecs
 import argparse
+import json
+import re
 from collections import defaultdict
 
 # hack for python2/3 compatibility
@@ -35,6 +37,15 @@ class BPE(object):
     def __init__(self, codes, separator='@@'):            
         
         with codecs.open(codes.name, encoding='utf-8') as codes:
+
+            # check version information
+            firstline = codes.readline()
+            if firstline.startswith('#version:'):
+                self.version = tuple([int(x) for x in re.sub(r'(\.0+)*$','', firstline.split()[-1]).split(".")])
+            else:
+                self.version = (0, 1)
+                codes.seek(0)
+
             self.bpe_codes = [tuple(item.split()) for item in codes]
          
         # some hacking to deal with duplicates (only consider first instance)
@@ -47,7 +58,7 @@ class BPE(object):
 
         output = []
         for word in sentence.split():
-            new_word = encode(word, self.bpe_codes)
+            new_word = encode(word, self.bpe_codes, self.version)
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
@@ -90,15 +101,24 @@ def get_pairs(word):
         prev_char = char
     return pairs
 
-def encode(orig, bpe_codes, cache={}):
+def encode(orig, bpe_codes, version, cache={}):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
     if orig in cache:
         return cache[orig]
 
-    word = tuple(orig) + ('</w>',)
+    if version == (0, 1):
+        word = tuple(orig) + ('</w>',)
+    elif version == (0, 2): # more consistent handling of word-final segments
+        word = tuple(orig[:-1]) + ( orig[-1] + '</w>',)
+    else:
+        raise NotImplementedError
+
     pairs = get_pairs(word)
+
+    if not pairs:
+        return orig
 
     while True:
         bigram = min(pairs, key = lambda pair: bpe_codes.get(pair, float('inf')))
