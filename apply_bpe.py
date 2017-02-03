@@ -34,8 +34,8 @@ import codecs
 
 class BPE(object):
 
-    def __init__(self, codes, separator='@@'):            
-        
+    def __init__(self, codes, separator='@@', vocab=None):
+
         with codecs.open(codes.name, encoding='utf-8') as codes:
 
             # check version information
@@ -47,18 +47,22 @@ class BPE(object):
                 codes.seek(0)
 
             self.bpe_codes = [tuple(item.split()) for item in codes]
-         
+
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
 
+        self.bpe_codes_reverse = dict([(pair[0] + pair[1], pair) for pair,i in self.bpe_codes.items()])
+
         self.separator = separator
+
+        self.vocab = vocab
 
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
 
         output = []
         for word in sentence.split():
-            new_word = encode(word, self.bpe_codes, self.version)
+            new_word = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version)
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
@@ -86,6 +90,14 @@ def create_parser():
     parser.add_argument(
         '--separator', '-s', type=str, default='@@', metavar='STR',
         help="Separator between non-final subword units (default: '%(default)s'))")
+    parser.add_argument(
+        '--vocabulary', type=argparse.FileType('r'), default=None,
+        metavar="PATH",
+        help="Vocabulary file (built with get_vocab.py). If provided, this script reverts any merge operations that produce an OOV.")
+    parser.add_argument(
+        '--vocabulary-threshold', type=int, default=None,
+        metavar="INT",
+        help="Vocabulary threshold. If vocabulary is provided, any word with frequency < threshold will be treated as OOV")
 
     return parser
 
@@ -101,7 +113,7 @@ def get_pairs(word):
         prev_char = char
     return pairs
 
-def encode(orig, bpe_codes, version, cache={}):
+def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache={}):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
@@ -155,15 +167,88 @@ def encode(orig, bpe_codes, version, cache={}):
     elif word[-1].endswith('</w>'):
         word = word[:-1] + (word[-1].replace('</w>',''),)
 
+    if vocab:
+        word = check_vocab_and_split(word, bpe_codes_reverse, vocab, separator)
+
     cache[orig] = word
     return word
 
+def recursive_split(segment, bpe_codes, vocab, separator, final=False):
+    """Recursively split segment into smaller units (by reversing BPE merges)
+    until all units are either in-vocabulary, or cannot be split futher."""
+
+    try:
+        if final:
+            left, right = bpe_codes[segment + '</w>']
+            right = right[:-4]
+        else:
+            left, right = bpe_codes[segment]
+    except:
+        #sys.stderr.write('cannot split {0} further.\n'.format(segment))
+        yield segment
+        return
+
+    if left + separator in vocab:
+        yield left
+    else:
+        for item in recursive_split(left, bpe_codes, vocab, separator, False):
+            yield item
+
+    if (final and right in vocab) or (not final and right + separator in vocab):
+        yield right
+    else:
+        for item in recursive_split(right, bpe_codes, vocab, separator, final):
+            yield item
+
+def check_vocab_and_split(orig, bpe_codes, vocab, separator):
+    """Check for each segment in word if it is in-vocabulary,
+    and segment OOV segments into smaller units by reversing the BPE merge operations"""
+
+    out = []
+
+    for segment in orig[:-1]:
+        if segment + separator in vocab:
+            out.append(segment)
+        else:
+            #sys.stderr.write('OOV: {0}\n'.format(segment))
+            for item in recursive_split(segment, bpe_codes, vocab, separator, False):
+                out.append(item)
+
+    segment = orig[-1]
+    if segment in vocab:
+        out.append(segment)
+    else:
+        #sys.stderr.write('OOV: {0}\n'.format(segment))
+        for item in recursive_split(segment, bpe_codes, vocab, separator, True):
+            out.append(item)
+
+    return out
+
+
+def read_vocabulary(vocab_file, threshold):
+    """read vocabulary file produced by get_vocab.py, and filter according to frequency threshold.
+    """
+
+    vocabulary = set()
+
+    for line in vocab_file:
+        word, freq = line.split()
+        freq = int(freq)
+        if threshold == None or freq >= threshold:
+            vocabulary.add(word)
+
+    return vocabulary
 
 if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
-    bpe = BPE(args.codes, args.separator)
+    if args.vocabulary:
+        vocabulary = read_vocabulary(args.vocabulary, args.vocabulary_threshold)
+    else:
+        vocabulary = None
+
+    bpe = BPE(args.codes, args.separator, vocabulary)
 
     for line in args.input:
         args.output.write(bpe.segment(line).strip())
