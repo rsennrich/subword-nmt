@@ -24,6 +24,51 @@ The original segmentation can be restored with a simple replacement:
 
     sed "s/@@ //g"
 
+
+BEST PRACTICE ADVICE FOR BYTE PAIR ENCODING IN NMT
+--------------------------------------------------
+
+We found that for languages that share an alphabet, learning BPE on the
+concatenation of the (two or more) involved languages increases the consistency
+of segmentation, and reduces the problem of inserting/deleting characters when
+copying/transliterating names.
+
+However, this introduces undesirable edge cases in that a word may be segmented
+in a way that has only been observed in the other language, and is thus unknown
+at test time. To prevent this, `apply_bpe.py` accepts a `--vocabulary` and a
+`--vocabulary-threshold` option so that the script will only produce symbols
+which also appear in the vocabulary (with at least some frequency).
+
+To use this functionality, we recommend the following recipe (assuming L1 and L2
+are the two languages):
+
+Learn byte pair encoding on the concatenation of the training text, and apply it to each:
+
+    cat {train_file}.L1 {train_file}.L2 | ./learn_bpe.py -s {num_operations} > {codes_file}
+    ./apply_bpe.py -c {codes_file} < {train_file}.L1 > {train_file}.BPE_tmp.L1
+    ./apply_bpe.py -c {codes_file} < {train_file}.L2 > {train_file}.BPE_tmp.L2
+
+extract the vocabulary:
+
+    ./get_vocab.py < {train_file}.BPE_tmp.L1 > vocab.L1
+    ./get_vocab.py < {train_file}.BPE_tmp.L2 > vocab.L2
+
+re-apply byte pair encoding with vocabulary filter:
+
+    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L1 --vocabulary-filter 50 < {train_file}.L1 > {train_file}.BPE.L1
+    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L2 --vocabulary-filter 50 < {train_file}.L2 > {train_file}.BPE.L2
+
+as a last step, extract the vocabulary to be used by the neural network. Example with Nematus:
+
+    nematus/data/build_dictionary.py {train_file}.BPE.L1 {train_file}.BPE.L2
+
+[you may want to take the union of all vocabularies to support multilingual systems]
+
+for test/dev data, re-use the same options for consistency:
+
+    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L1 --vocabulary-filter 50 < {test_file}.L1 > {test_file}.BPE.L1
+
+
 PUBLICATIONS
 ------------
 
