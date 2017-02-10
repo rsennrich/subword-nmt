@@ -29,6 +29,10 @@ if sys.version_info < (3, 0):
   sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
   sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
   sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+else:
+  sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+  sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+  sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -222,6 +226,12 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
-    vocab = get_vocabulary(infile)
+    # read/write files as UTF-8
+    if args.input.name != '<stdin>':
+        args.input = codecs.open(args.input.name, encoding='utf-8')
+    if args.output.name != '<stdout>':
+        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+
+    vocab = get_vocabulary(args.input)
 
     main(vocab, args.output, args.symbols, args.min_frequency, args.verbose)
