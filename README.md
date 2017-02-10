@@ -48,8 +48,8 @@ Learn byte pair encoding on the concatenation of the training text, and get resu
 
 re-apply byte pair encoding with vocabulary filter:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-filter 50 < {train_file}.L1 > {train_file}.BPE.L1
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L2 --vocabulary-filter 50 < {train_file}.L2 > {train_file}.BPE.L2
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {train_file}.L1 > {train_file}.BPE.L1
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L2 --vocabulary-threshold 50 < {train_file}.L2 > {train_file}.BPE.L2
 
 as a last step, extract the vocabulary to be used by the neural network. Example with Nematus:
 
@@ -59,7 +59,7 @@ as a last step, extract the vocabulary to be used by the neural network. Example
 
 for test/dev data, re-use the same options for consistency:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-filter 50 < {test_file}.L1 > {test_file}.BPE.L1
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {test_file}.L1 > {test_file}.BPE.L1
 
 
 PUBLICATIONS
