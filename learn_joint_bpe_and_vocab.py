@@ -28,12 +28,6 @@ import apply_bpe
 from io import open
 argparse.open = open
 
-# python 2/3 compatibility
-if sys.version_info < (3, 0):
-  sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-  sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-  sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-
 def create_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -54,8 +48,8 @@ def create_parser():
         '--separator', type=str, default='@@', metavar='STR',
         help="Separator between non-final subword units (default: '%(default)s'))")
     parser.add_argument(
-        '--vocabulary', type=argparse.FileType('w'), nargs = '+', default=None,
-        metavar='PATH',
+        '--write-vocabulary', type=argparse.FileType('w'), nargs = '+', default=None,
+        metavar='PATH', dest='vocab',
         help='Write to these vocabulary files after applying BPE. One per input text. Used for filtering in apply_bpe.py')
     parser.add_argument(
         '--min-frequency', type=int, default=2, metavar='FREQ',
@@ -70,6 +64,16 @@ def create_parser():
 
 if __name__ == '__main__':
 
+    # python 2/3 compatibility
+    if sys.version_info < (3, 0):
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+    else:
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+
     parser = create_parser()
     args = parser.parse_args()
 
@@ -77,23 +81,25 @@ if __name__ == '__main__':
         sys.stderr.write('Error: number of input files and vocabulary files must match\n')
         sys.exit(1)
 
+    # read/write files as UTF-8
+    args.input = [codecs.open(f.name, encoding='UTF-8') for f in args.input]
+    args.vocab = [codecs.open(f.name, 'w', encoding='UTF-8') for f in args.vocab]
+
     # get combined vocabulary of all input texts
     full_vocab = Counter()
     for f in args.input:
-        with codecs.open(f.name, encoding='UTF-8') as f:
-            full_vocab += learn_bpe.get_vocabulary(f)
+        full_vocab += learn_bpe.get_vocabulary(f)
+        f.seek(0)
 
     # learn BPE on combined vocabulary
     with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
         learn_bpe.main(full_vocab, output, args.symbols, args.min_frequency, args.verbose)
 
-    bpe = apply_bpe.BPE(args.output, args.separator, None)
+    with codecs.open(args.output.name, encoding='UTF-8') as codes:
+        bpe = apply_bpe.BPE(codes, args.separator, None)
 
     # apply BPE to each training corpus and get vocabulary
     for train_file, vocab_file in zip(args.input, args.vocab):
-
-        train_file = codecs.open(train_file.name, encoding='UTF-8')
-        vocab_file = codecs.open(vocab_file.name, 'w', encoding='UTF-8')
 
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.close()
@@ -106,7 +112,7 @@ if __name__ == '__main__':
             tmpout.write('\n')
 
         tmpout.close()
-        tmpin = codecs.open(tmp.name, 'r', encoding='UTF-8')
+        tmpin = codecs.open(tmp.name, encoding='UTF-8')
 
         vocab = learn_bpe.get_vocabulary(tmpin)
         tmpin.close()

@@ -24,16 +24,6 @@ from collections import defaultdict, Counter
 from io import open
 argparse.open = open
 
-# python 2/3 compatibility
-if sys.version_info < (3, 0):
-  sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-  sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-  sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-else:
-  sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-  sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-  sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
-
 def create_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -222,6 +212,16 @@ def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
 
 
 if __name__ == '__main__':
+
+    # python 2/3 compatibility
+    if sys.version_info < (3, 0):
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+    else:
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
 
     parser = create_parser()
     args = parser.parse_args()
