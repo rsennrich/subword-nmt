@@ -27,16 +27,19 @@ if sys.version_info < (3, 0):
   sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
   sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
   sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+else:
+  sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+  sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+  sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
 
 import codecs
 
 class BPE(object):
 
     def __init__(self, codes, separator='@@'):            
-        
-        with codecs.open(codes.name, encoding='utf-8') as codes:
-            self.bpe_codes = [tuple(item.split()) for item in codes]
-         
+
+        self.bpe_codes = [tuple(item.split()) for item in codes]
+
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
 
@@ -142,6 +145,13 @@ def encode(orig, bpe_codes, cache={}):
 if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
+
+    # read/write files as UTF-8
+    args.codes = codecs.open(args.codes.name, encoding='utf-8')
+    if args.input.name != '<stdin>':
+        args.input = codecs.open(args.input.name, encoding='utf-8')
+    if args.output.name != '<stdout>':
+        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
     bpe = BPE(args.codes, args.separator)
 
