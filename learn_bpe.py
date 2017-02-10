@@ -174,16 +174,14 @@ def prune_stats(stats, big_stats, threshold):
             else:
                 big_stats[item] = freq
 
-if __name__ == '__main__':
 
-    parser = create_parser()
-    args = parser.parse_args()
+def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
+    """Learn num_symbols BPE operations from vocabulary, and write to outfile.
+    """
 
     # version 0.2 changes the handling of the end-of-word token ('</w>');
     # version numbering allows bckward compatibility
-    args.output.write('#version: 0.2\n')
-
-    vocab = get_vocabulary(args.input)
+    outfile.write('#version: 0.2\n')
 
     vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
@@ -192,7 +190,7 @@ if __name__ == '__main__':
     big_stats = copy.deepcopy(stats)
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
-    for i in range(args.symbols):
+    for i in range(num_symbols):
         if stats:
             most_frequent = max(stats, key=stats.get)
 
@@ -205,15 +203,25 @@ if __name__ == '__main__':
             threshold = stats[most_frequent] * i/(i+10000.0)
             prune_stats(stats, big_stats, threshold)
 
-        if stats[most_frequent] < args.min_frequency:
-            sys.stderr.write('no pair has frequency >= {0}. Stopping\n'.format(args.min_frequency))
+        if stats[most_frequent] < min_frequency:
+            sys.stderr.write('no pair has frequency >= {0}. Stopping\n'.format(min_frequency))
             break
 
-        if args.verbose:
+        if verbose:
             sys.stderr.write('pair {0}: {1} {2} -> {1}{2} (frequency {3})\n'.format(i, most_frequent[0], most_frequent[1], stats[most_frequent]))
-        args.output.write('{0} {1}\n'.format(*most_frequent))
+        outfile.write('{0} {1}\n'.format(*most_frequent))
         changes = replace_pair(most_frequent, sorted_vocab, indices)
         update_pair_statistics(most_frequent, changes, stats, indices)
         stats[most_frequent] = 0
         if not i % 100:
             prune_stats(stats, big_stats, threshold)
+
+
+if __name__ == '__main__':
+
+    parser = create_parser()
+    args = parser.parse_args()
+
+    vocab = get_vocabulary(infile)
+
+    main(vocab, args.output, args.symbols, args.min_frequency, args.verbose)

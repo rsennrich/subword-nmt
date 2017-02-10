@@ -42,21 +42,14 @@ which also appear in the vocabulary (with at least some frequency).
 To use this functionality, we recommend the following recipe (assuming L1 and L2
 are the two languages):
 
-Learn byte pair encoding on the concatenation of the training text, and apply it to each:
+Learn byte pair encoding on the concatenation of the training text, and get resulting vocabulary for each:
 
-    cat {train_file}.L1 {train_file}.L2 | ./learn_bpe.py -s {num_operations} > {codes_file}
-    ./apply_bpe.py -c {codes_file} < {train_file}.L1 > {train_file}.BPE_tmp.L1
-    ./apply_bpe.py -c {codes_file} < {train_file}.L2 > {train_file}.BPE_tmp.L2
-
-extract the vocabulary:
-
-    ./get_vocab.py < {train_file}.BPE_tmp.L1 > vocab.L1
-    ./get_vocab.py < {train_file}.BPE_tmp.L2 > vocab.L2
+    ./learn_joint_bpe_and_vocab.py --input {train_file}.L1 {train_file}.L2 -s {num_operations} -o {codes_file} --write_vocabulary {vocab_file}.L1 {vocab_file}.L2
 
 re-apply byte pair encoding with vocabulary filter:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L1 --vocabulary-filter 50 < {train_file}.L1 > {train_file}.BPE.L1
-    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L2 --vocabulary-filter 50 < {train_file}.L2 > {train_file}.BPE.L2
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-filter 50 < {train_file}.L1 > {train_file}.BPE.L1
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L2 --vocabulary-filter 50 < {train_file}.L2 > {train_file}.BPE.L2
 
 as a last step, extract the vocabulary to be used by the neural network. Example with Nematus:
 
@@ -66,7 +59,7 @@ as a last step, extract the vocabulary to be used by the neural network. Example
 
 for test/dev data, re-use the same options for consistency:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary vocab.L1 --vocabulary-filter 50 < {test_file}.L1 > {test_file}.BPE.L1
+    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-filter 50 < {test_file}.L1 > {test_file}.BPE.L1
 
 
 PUBLICATIONS
