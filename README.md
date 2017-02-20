@@ -32,3 +32,7 @@ The segmentation methods are described in:
 Rico Sennrich, Barry Haddow and Alexandra Birch (2016):
     Neural Machine Translation of Rare Words with Subword Units
     Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
+
+ACKNOWLEDGMENTS
+---------------
+This project has received funding from Samsung Electronics Polska sp. z o.o. - Samsung R&D Institute Poland, and from the European Union’s Horizon 2020 research and innovation programme under grant agreement 645452 (QT21).
