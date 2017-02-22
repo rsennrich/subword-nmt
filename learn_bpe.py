@@ -199,13 +199,13 @@ if __name__ == '__main__':
     threshold = max(stats.values()) / 10
     for i in range(args.symbols):
         if stats:
-            most_frequent = max(stats, key=stats.get)
+            most_frequent = max(stats, key=lambda x: (stats[x], x))
 
         # we probably missed the best pair because of pruning; go back to full statistics
         if not stats or (i and stats[most_frequent] < threshold):
             prune_stats(stats, big_stats, threshold)
             stats = copy.deepcopy(big_stats)
-            most_frequent = max(stats, key=stats.get)
+            most_frequent = max(stats, key=lambda x: (stats[x], x))
             # threshold is inspired by Zipfian assumption, but should only affect speed
             threshold = stats[most_frequent] * i/(i+10000.0)
             prune_stats(stats, big_stats, threshold)
