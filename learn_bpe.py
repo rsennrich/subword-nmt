@@ -33,6 +33,7 @@ def create_parser():
         '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
         metavar='PATH',
         help="Input text (default: standard input).")
+
     parser.add_argument(
         '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
         metavar='PATH',
@@ -43,19 +44,25 @@ def create_parser():
     parser.add_argument(
         '--min-frequency', type=int, default=2, metavar='FREQ',
         help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
+    parser.add_argument('--dict-input', action="store_true",
+        help="If set, input file is interpreted as a dictionary where each line contains a word-count pair")
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
 
     return parser
 
-def get_vocabulary(fobj):
+def get_vocabulary(fobj, is_dict=False):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
     for line in fobj:
-        for word in line.split():
-            vocab[word] += 1
+        if is_dict:
+            word, count = line.strip().split()
+            vocab[word] = int(count)
+        else:
+            for word in line.split():
+                vocab[word] += 1
     return vocab
 
 def update_pair_statistics(pair, changed, stats, indices):
@@ -177,6 +184,7 @@ def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
     # version numbering allows bckward compatibility
     outfile.write('#version: 0.2\n')
 
+    vocab = get_vocabulary(args.input, is_dict = args.dict_input)
     vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
@@ -186,13 +194,13 @@ def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
     threshold = max(stats.values()) / 10
     for i in range(num_symbols):
         if stats:
-            most_frequent = max(stats, key=stats.get)
+            most_frequent = max(stats, key=lambda x: (stats[x], x))
 
         # we probably missed the best pair because of pruning; go back to full statistics
         if not stats or (i and stats[most_frequent] < threshold):
             prune_stats(stats, big_stats, threshold)
             stats = copy.deepcopy(big_stats)
-            most_frequent = max(stats, key=stats.get)
+            most_frequent = max(stats, key=lambda x: (stats[x], x))
             # threshold is inspired by Zipfian assumption, but should only affect speed
             threshold = stats[most_frequent] * i/(i+10000.0)
             prune_stats(stats, big_stats, threshold)
@@ -231,7 +239,5 @@ if __name__ == '__main__':
         args.input = codecs.open(args.input.name, encoding='utf-8')
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
-
-    vocab = get_vocabulary(args.input)
 
     main(vocab, args.output, args.symbols, args.min_frequency, args.verbose)
