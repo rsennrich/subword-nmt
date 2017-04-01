@@ -91,9 +91,11 @@ if __name__ == '__main__':
         full_vocab += learn_bpe.get_vocabulary(f)
         f.seek(0)
 
+    vocab_list = ['{0} {1}'.format(key, freq) for (key, freq) in full_vocab.items()]
+
     # learn BPE on combined vocabulary
     with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
-        learn_bpe.main(full_vocab, output, args.symbols, args.min_frequency, args.verbose)
+        learn_bpe.main(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
         bpe = apply_bpe.BPE(codes, args.separator, None)

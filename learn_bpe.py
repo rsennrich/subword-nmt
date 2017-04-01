@@ -176,7 +176,7 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
+def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
@@ -184,7 +184,7 @@ def main(vocab, outfile, num_symbols, min_frequency=2, verbose=False):
     # version numbering allows bckward compatibility
     outfile.write('#version: 0.2\n')
 
-    vocab = get_vocabulary(args.input, is_dict = args.dict_input)
+    vocab = get_vocabulary(infile, is_dict)
     vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
@@ -240,4 +240,4 @@ if __name__ == '__main__':
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    main(vocab, args.output, args.symbols, args.min_frequency, args.verbose)
+    main(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
