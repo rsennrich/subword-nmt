@@ -22,7 +22,7 @@ To segment rare words into character n-grams, do the following:
 
 The original segmentation can be restored with a simple replacement:
 
-    sed "s/@@ //g"
+    sed -r 's/(@@ )|(@@ ?$)//g'
 
 
 BEST PRACTICE ADVICE FOR BYTE PAIR ENCODING IN NMT
