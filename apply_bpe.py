@@ -24,11 +24,9 @@ from collections import defaultdict
 from io import open
 argparse.open = open
 
-import codecs
-
 class BPE(object):
 
-    def __init__(self, codes, separator='@@', vocab=None):
+    def __init__(self, codes, separator='@@', vocab=None, glossaries=None):
 
         # check version information
         firstline = codes.readline()
@@ -49,18 +47,33 @@ class BPE(object):
 
         self.vocab = vocab
 
+        self.glossaries = glossaries
+
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
-
         output = []
         for word in sentence.split():
-            new_word = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version)
+            new_word = [out for segment in self._isolate_glossaries(word)
+                        for out in encode(segment,
+                                          self.bpe_codes,
+                                          self.bpe_codes_reverse,
+                                          self.vocab,
+                                          self.separator,
+                                          self.version,
+                                          self.glossaries)]
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
             output.append(new_word[-1])
 
         return ' '.join(output)
+
+    def _isolate_glossaries(self, word):
+        word_segments = [word]
+        for gloss in self.glossaries:
+            word_segments = [out_segments for segment in word_segments
+                                 for out_segments in isolate_glossary(segment, gloss)]
+        return word_segments
 
 def create_parser():
     parser = argparse.ArgumentParser(
@@ -90,6 +103,11 @@ def create_parser():
         '--vocabulary-threshold', type=int, default=None,
         metavar="INT",
         help="Vocabulary threshold. If vocabulary is provided, any word with frequency < threshold will be treated as OOV")
+    parser.add_argument(
+        '--glossaries', type=str, nargs='+', default=None,
+        metavar="STR",
+        help="Glossaries. The strings provided in glossaries will not be affected"+
+             "by the BPE (i.e. they will neither be broken into subwords, nor concatenated with other subwords")
 
     return parser
 
@@ -105,12 +123,16 @@ def get_pairs(word):
         prev_char = char
     return pairs
 
-def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache={}):
+def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, glossaries=None, cache={}):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
     if orig in cache:
         return cache[orig]
+
+    if orig in glossaries:
+        cache[orig] = (orig,)
+        return (orig,)
 
     if version == (0, 1):
         word = tuple(orig) + ('</w>',)
@@ -230,6 +252,22 @@ def read_vocabulary(vocab_file, threshold):
             vocabulary.add(word)
 
     return vocabulary
+
+def isolate_glossary(word, glossary):
+    """
+    Isolate a glossary present inside a word.
+
+    Returns a list of subwords. In which all 'glossary' glossaries are isolated 
+
+    For example, if 'USA' is the glossary and '1934USABUSA' the word, the return value is:
+        ['1934', 'USA', 'B', 'USA']
+    """
+    if word == glossary or glossary not in word:
+        return [word]
+    else:
+        splits = word.split(glossary)
+        segments = [segment.strip() for split in splits[:-1] for segment in [split, glossary] if segment != '']
+        return segments + [splits[-1].strip()] if splits[-1] != '' else segments
 
 if __name__ == '__main__':
 
