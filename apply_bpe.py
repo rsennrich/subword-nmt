@@ -49,12 +49,13 @@ class BPE(object):
 
         self.vocab = vocab
 
+        self.cache = {}
+
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
-
         output = []
         for word in sentence.split():
-            new_word = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version)
+            new_word = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version, self.cache)
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
