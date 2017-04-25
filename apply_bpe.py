@@ -49,12 +49,13 @@ class BPE(object):
 
         self.vocab = vocab
 
+        self.cache = {}
+
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
-        cache = {}
         output = []
         for word in sentence.split():
-            new_word, cache = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version, cache)
+            new_word = encode(word, self.bpe_codes, self.bpe_codes_reverse, self.vocab, self.separator, self.version, self.cache)
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
@@ -110,7 +111,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache=
     """
 
     if orig in cache:
-        return cache[orig], cache
+        return cache[orig]
 
     if version == (0, 1):
         word = tuple(orig) + ('</w>',)
@@ -122,7 +123,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache=
     pairs = get_pairs(word)
 
     if not pairs:
-        return orig, cache
+        return orig
 
     while True:
         bigram = min(pairs, key = lambda pair: bpe_codes.get(pair, float('inf')))
@@ -163,7 +164,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache=
         word = check_vocab_and_split(word, bpe_codes_reverse, vocab, separator)
 
     cache[orig] = word
-    return word, cache
+    return word
 
 def recursive_split(segment, bpe_codes, vocab, separator, final=False):
     """Recursively split segment into smaller units (by reversing BPE merges)
