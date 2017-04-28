@@ -80,17 +80,21 @@ def update_pair_statistics(pair, changed, stats, indices):
         # find all instances of pair, and update frequency/indices around it
         i = 0
         while True:
+            # find first symbol
             try:
                 i = old_word.index(first, i)
             except ValueError:
                 break
+            # if first symbol is followed by second symbol, we've found an occurrence of pair (old_word[i:i+2])
             if i < len(old_word)-1 and old_word[i+1] == second:
+                # assuming a symbol sequence "A B C", if "B C" is merged, reduce the frequency of "A B"
                 if i:
                     prev = old_word[i-1:i+1]
                     stats[prev] -= freq
                     indices[prev][j] -= 1
                 if i < len(old_word)-2:
-                    # don't double-count consecutive pairs
+                    # assuming a symbol sequence "A B C B", if "B C" is merged, reduce the frequency of "C B".
+                    # however, skip this if the sequence is A B C B C, because the frequency of "C B" will be reduced by the previous code block
                     if old_word[i+2] != first or i >= len(old_word)-3 or old_word[i+3] != second:
                         nex = old_word[i+1:i+3]
                         stats[nex] -= freq
@@ -102,14 +106,17 @@ def update_pair_statistics(pair, changed, stats, indices):
         i = 0
         while True:
             try:
+                # find new pair
                 i = word.index(new_pair, i)
             except ValueError:
                 break
+            # assuming a symbol sequence "A BC D", if "B C" is merged, increase the frequency of "A BC"
             if i:
                 prev = word[i-1:i+1]
                 stats[prev] += freq
                 indices[prev][j] += 1
-            # don't double-count consecutive pairs
+            # assuming a symbol sequence "A BC B", if "B C" is merged, increase the frequency of "BC B"
+            # however, if the sequence is A BC BC, skip this step because the count of "BC BC" will be incremented by the previous code block
             if i < len(word)-1 and word[i+1] != new_pair:
                 nex = word[i:i+2]
                 stats[nex] += freq
