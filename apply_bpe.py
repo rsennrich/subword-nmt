@@ -47,7 +47,7 @@ class BPE(object):
 
         self.vocab = vocab
 
-        self.glossaries = glossaries
+        self.glossaries = glossaries if glossaries else []
 
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
@@ -298,7 +298,7 @@ if __name__ == '__main__':
     else:
         vocabulary = None
 
-    bpe = BPE(args.codes, args.separator, vocabulary)
+    bpe = BPE(args.codes, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
         args.output.write(bpe.segment(line).strip())

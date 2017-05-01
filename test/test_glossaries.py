@@ -40,12 +40,6 @@ class TestIsolateGlossaryFunction(unittest.TestCase):
         test_case = (orig, exp)
         self._run_test_case(test_case)
 
-    def test_isolated_glossary(self):
-        orig = 'like'
-        exp = ['like']
-        test_case = (orig, exp)
-        self._run_test_case(test_case)
-
     def test_word_one_side(self):
         orig = 'likeword'
         exp = ['like', 'word']
