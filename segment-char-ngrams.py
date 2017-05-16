@@ -22,7 +22,7 @@ def create_parser():
         metavar='PATH',
         help="Input file (default: standard input).")
     parser.add_argument(
-        '--vocab', type=argparse.FileType('r'), metavar='PATH',
+        '--vocab', type=argparse.FileType('r',encoding="UTF-8"), metavar='PATH',
         required=True,
         help="Vocabulary file.")
     parser.add_argument(
