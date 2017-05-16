@@ -201,7 +201,7 @@ def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=F
     threshold = max(stats.values()) / 10
     for i in range(num_symbols):
         if stats:
-            most_frequent = max(stats, key=lambda x: (stats[x], x))
+            most_frequent = max(stats, key=stats.get)
 
         # we probably missed the best pair because of pruning; go back to full statistics
         if not stats or (i and stats[most_frequent] < threshold):
