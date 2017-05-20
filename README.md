@@ -50,7 +50,7 @@ Learn byte pair encoding on the concatenation of the training text, and get resu
 
 more conventiently, you can do the same with with this command:
 
-    ./learn_joint_bpe_and_vocab.py --input {train_file}.L1 {train_file}.L2 -s {num_operations} -o {codes_file} --write_vocabulary {vocab_file}.L1 {vocab_file}.L2
+    ./learn_joint_bpe_and_vocab.py --input {train_file}.L1 {train_file}.L2 -s {num_operations} -o {codes_file} --write-vocabulary {vocab_file}.L1 {vocab_file}.L2
 
 re-apply byte pair encoding with vocabulary filter:
 
