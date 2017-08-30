@@ -15,6 +15,7 @@ from __future__ import unicode_literals, division
 
 import sys
 import codecs
+import io
 import argparse
 import json
 import re
@@ -280,9 +281,9 @@ if __name__ == '__main__':
         sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
         sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
     else:
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+        sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
+        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', write_through=True, line_buffering=True)
 
     parser = create_parser()
     args = parser.parse_args()
