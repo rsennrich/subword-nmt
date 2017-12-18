@@ -98,7 +98,7 @@ if __name__ == '__main__':
         learn_bpe.main(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
-        bpe = apply_bpe.BPE(codes, args.separator, None)
+        bpe = apply_bpe.BPE(codes, separator=args.separator)
 
     # apply BPE to each training corpus and get vocabulary
     for train_file, vocab_file in zip(args.input, args.vocab):
