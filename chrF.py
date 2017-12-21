@@ -14,7 +14,6 @@ import codecs
 import io
 import argparse
 from collections import defaultdict
-from math import log, exp
 
 # hack for python2/3 compatibility
 from io import open
