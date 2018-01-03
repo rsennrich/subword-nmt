@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Author: Rico Sennrich
 
@@ -17,9 +17,7 @@ import sys
 import codecs
 import io
 import argparse
-import json
 import re
-from collections import defaultdict
 
 # hack for python2/3 compatibility
 from io import open
