@@ -59,7 +59,7 @@ def get_vocabulary(fobj, is_dict=False):
     for line in fobj:
         if is_dict:
             word, count = line.strip().split()
-            vocab[word] = int(count)
+            vocab[word] += int(count)
         else:
             for word in line.split():
                 vocab[word] += 1
