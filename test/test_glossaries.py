@@ -83,7 +83,7 @@ class TestBPEIsolateGlossariesMethod(unittest.TestCase):
         test_case = (orig, exp)
         self._run_test_case(test_case)
 
-def encode_mock(segment, x2, x3, x4, x5, x6, glosses):
+def encode_mock(segment, x2, x3, x4, x5, x6, x7, glosses):
     if segment in glosses:
         return (segment,)
     else:
