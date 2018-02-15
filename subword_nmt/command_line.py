@@ -142,8 +142,7 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="subword-nmt segmentation")
-    subparsers = parser.add_subparsers(dest='command', choices=AVAILABLE_COMMANDS,
-                                       help='Command to run')
+    subparsers = parser.add_subparsers(dest='command', help='Command to run')
 
     learn_bpe_parser = create_learn_bpe_parser()
     apply_bpe_parser = create_apply_bpe_parser()
