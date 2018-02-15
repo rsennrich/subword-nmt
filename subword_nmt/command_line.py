@@ -1,21 +1,26 @@
+import io
 import sys
 import codecs
+import argparse
 
-from subword_nmt import learn_bpe, apply_bpe
-
-
-# python 2/3 compatibility
-if sys.version_info < (3, 0):
-    sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-    sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-    sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-else:
-    sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-    sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-    sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+from subword_nmt.learn_bpe import learn_bpe
+from subword_nmt.apply_bpe import apply_bpe
+from subword_nmt.get_vocab import get_vocab
+from subword_nmt.segment_char_ngrams import segment_char_ngrams
 
 
-def create_learn_bpe_parser(subparsers):
+AVAILABLE_COMMANDS = [
+    'learn_bpe',
+    'apply_bpe',
+    'get-vocab',
+    'segment-char-ngrams'
+]
+
+# hack for python2/3 compatibility
+argparse.open = io.open
+
+
+def create_learn_bpe_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="learn BPE-based word segmentation")
@@ -43,7 +48,7 @@ def create_learn_bpe_parser(subparsers):
     return parser
 
 
-def create_apply_bpe_parser(subparsers):
+def create_apply_bpe_parser():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="learn BPE-based word segmentation")
@@ -85,15 +90,65 @@ def create_apply_bpe_parser(subparsers):
     return parser
 
 
+def create_get_vocab_parser():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="Generates vocabulary")
+
+    parser.add_argument(
+        '--train_file', type=argparse.FileType('r'), default=None,
+        metavar="PATH",
+        help="File where to save vocab.")
+
+    parser.add_argument(
+        '--vocab_file', type=argparse.FileType('r'), default=None,
+        metavar="PATH",
+        help="File where to save vocab.")
+
+    return parser
+
+
+def create_segment_char_ngrams_parser():
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="segment rare words into character n-grams")
+
+    parser.add_argument(
+        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
+        metavar='PATH',
+        help="Input file (default: standard input).")
+    parser.add_argument(
+        '--vocab', type=argparse.FileType('r'), metavar='PATH',
+        required=True,
+        help="Vocabulary file.")
+    parser.add_argument(
+        '--shortlist', type=int, metavar='INT', default=0,
+        help="do not segment INT most frequent words in vocabulary (default: '%(default)s')).")
+    parser.add_argument(
+        '-n', type=int, metavar='INT', default=2,
+        help="segment rare words into character n-grams of size INT (default: '%(default)s')).")
+    parser.add_argument(
+        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
+        metavar='PATH',
+        help="Output file (default: standard output)")
+    parser.add_argument(
+        '--separator', '-s', type=str, default='@@', metavar='STR',
+        help="Separator between non-final subword units (default: '%(default)s'))")
+
+    return parser
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="subword-nmt segmentation")
-    subparsers = parser.add_subparsers(dest='command', help='Command to run',
-                                       choices=['learn_bpe', 'apply_bpe'])
+    subparsers = parser.add_subparsers(dest='command', choices=AVAILABLE_COMMANDS,
+                                       help='Command to run')
 
-    learn_bpe_parser = create_learn_bpe_parser(subparsers)
-    apply_bpe_parser = create_apply_bpe_parser(subparsers)
+    learn_bpe_parser = create_learn_bpe_parser()
+    apply_bpe_parser = create_apply_bpe_parser()
+    get_vocab_parser = create_get_vocab_parser()
+    segment_char_ngrams_parser = create_segment_char_ngrams_parser()
 
     args = parser.parse_args()
 
@@ -125,5 +180,23 @@ def main():
         for line in args.input:
             args.output.write(bpe.segment(line).strip())
             args.output.write('\n')
+    elif args.command == 'get-vocab':
+        get_vocab(args.train_file, args.vocab_file)
+    elif args.command == 'segment-char-ngrams':
+        segment_char_ngrams(args)
     else:
         raise Exception('Invalid command provided')
+
+
+if __name__ == '__main__':
+    # python 2/3 compatibility
+    if sys.version_info < (3, 0):
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+    else:
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+
+    main()

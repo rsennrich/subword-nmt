@@ -1,13 +1,18 @@
-#! /usr/bin/env python
 from __future__ import print_function
-import sys
+
+import os
 from collections import Counter
 
-c = Counter()
+def get_vocab(train_file, vocab_file):
+    c = Counter()
 
-for line in sys.stdin:
-    for word in line.split():
-        c[word] += 1
+    with open(train_file, 'r', encoding='utf-8') as f:
+        lines = f.read().splitlines()
 
-for key,f in sorted(c.items(), key=lambda x: x[1], reverse=True):
-    print(key+" "+ str(f))
+    for line in lines:
+        for word in line.split():
+            c[word] += 1
+
+    with open(vocab_file, 'w', encoding='utf-8') as f:
+        for key, f in sorted(c.items(), key=lambda x: x[1], reverse=True):
+            f.write(key + " " + str(f) + os.linesep)
