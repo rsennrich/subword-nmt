@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import os
 import sys
 import inspect
@@ -90,7 +87,7 @@ def encode_mock(segment, x2, x3, x4, x5, x6, x7, glosses):
         return (segment,)
     else:
         l = len(segment)
-        return (segment[:l/2], segment[l/2:])
+        return (segment[:int(l/2)], segment[int(l/2):])
 
 class TestBPESegmentMethod(unittest.TestCase):
 
@@ -114,6 +111,3 @@ class TestBPESegmentMethod(unittest.TestCase):
         exp = 'wo@@ rd@@ like@@ wo@@ rd like@@ Manuel@@ wo@@ rd'
         test_case = (orig, exp)
         self._run_test_case(test_case)
-
-if __name__ == '__main__':
-    unittest.main()

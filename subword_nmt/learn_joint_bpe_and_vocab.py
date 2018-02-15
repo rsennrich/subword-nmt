@@ -21,8 +21,8 @@ import argparse
 import tempfile
 from collections import Counter
 
-import learn_bpe
-import apply_bpe
+from learn_bpe import learn_bpe, get_vocabulary
+from apply_bpe import BPE
 
 # hack for python2/3 compatibility
 from io import open
@@ -88,17 +88,17 @@ if __name__ == '__main__':
     # get combined vocabulary of all input texts
     full_vocab = Counter()
     for f in args.input:
-        full_vocab += learn_bpe.get_vocabulary(f)
+        full_vocab += get_vocabulary(f)
         f.seek(0)
 
     vocab_list = ['{0} {1}'.format(key, freq) for (key, freq) in full_vocab.items()]
 
     # learn BPE on combined vocabulary
     with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
-        learn_bpe.main(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
+        learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
-        bpe = apply_bpe.BPE(codes, separator=args.separator)
+        bpe = BPE(codes, separator=args.separator)
 
     # apply BPE to each training corpus and get vocabulary
     for train_file, vocab_file in zip(args.input, args.vocab):
@@ -116,7 +116,7 @@ if __name__ == '__main__':
         tmpout.close()
         tmpin = codecs.open(tmp.name, encoding='UTF-8')
 
-        vocab = learn_bpe.get_vocabulary(tmpin)
+        vocab = get_vocabulary(tmpin)
         tmpin.close()
         os.remove(tmp.name)
 
