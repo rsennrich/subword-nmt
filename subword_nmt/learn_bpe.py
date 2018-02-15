@@ -15,12 +15,7 @@ from __future__ import unicode_literals
 import sys
 import re
 import copy
-import argparse
 from collections import defaultdict, Counter
-
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
 
 
 def get_vocabulary(fobj, is_dict=False):

@@ -13,14 +13,8 @@ Proceedings of the 54th Annual Meeting of the Association for Computational Ling
 from __future__ import unicode_literals, division
 
 import sys
-import codecs
-import io
-import argparse
 import re
 
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
 
 class BPE(object):
 
