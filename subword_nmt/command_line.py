@@ -4,7 +4,7 @@ import codecs
 import argparse
 
 from subword_nmt.learn_bpe import learn_bpe
-from subword_nmt.apply_bpe import apply_bpe
+from subword_nmt.apply_bpe import BPE, read_vocabulary
 from subword_nmt.get_vocab import get_vocab
 from subword_nmt.segment_char_ngrams import segment_char_ngrams
 
