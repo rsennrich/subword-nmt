@@ -96,12 +96,12 @@ def create_get_vocab_parser(subparsers):
         description="Generates vocabulary")
 
     parser.add_argument(
-        '--train_file', type=argparse.FileType('r'), default=None,
+        '--train_file', type=str, default=None,
         metavar="PATH",
         help="File where to save vocab.")
 
     parser.add_argument(
-        '--vocab_file', type=argparse.FileType('r'), default=None,
+        '--vocab_file', type=str, default=None,
         metavar="PATH",
         help="File where to save vocab.")
 
