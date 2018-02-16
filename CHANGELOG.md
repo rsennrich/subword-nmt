@@ -1,5 +1,8 @@
 CHANGELOG
 ---------
+v0.3:
+ - library is now installable via pip
+
 
 v0.2:
  - different, more consistent handling of end-of-word token (commit a749a7)

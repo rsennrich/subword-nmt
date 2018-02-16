@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Author: Rico Sennrich
 
-"""Use operations learned with learn_bpe.py to encode a new text.
+"""
+Use operations learned with learn_bpe.py to encode a new text.
 The text will not be smaller, but use only a fixed vocabulary, with rare words
 encoded as variable-length sequences of subword units.
 
@@ -14,14 +13,8 @@ Proceedings of the 54th Annual Meeting of the Association for Computational Ling
 from __future__ import unicode_literals, division
 
 import sys
-import codecs
-import io
-import argparse
 import re
 
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
 
 class BPE(object):
 
@@ -76,47 +69,6 @@ class BPE(object):
             word_segments = [out_segments for segment in word_segments
                                  for out_segments in isolate_glossary(segment, gloss)]
         return word_segments
-
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="learn BPE-based word segmentation")
-
-    parser.add_argument(
-        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
-        metavar='PATH',
-        help="Input file (default: standard input).")
-    parser.add_argument(
-        '--codes', '-c', type=argparse.FileType('r'), metavar='PATH',
-        required=True,
-        help="File with BPE codes (created by learn_bpe.py).")
-    parser.add_argument(
-        '--merges', '-m', type=int, default=-1,
-        metavar='INT',
-        help="Use this many BPE operations (<= number of learned symbols)"+
-             "default: Apply all the learned merge operations")
-    parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
-        metavar='PATH',
-        help="Output file (default: standard output)")
-    parser.add_argument(
-        '--separator', '-s', type=str, default='@@', metavar='STR',
-        help="Separator between non-final subword units (default: '%(default)s'))")
-    parser.add_argument(
-        '--vocabulary', type=argparse.FileType('r'), default=None,
-        metavar="PATH",
-        help="Vocabulary file (built with get_vocab.py). If provided, this script reverts any merge operations that produce an OOV.")
-    parser.add_argument(
-        '--vocabulary-threshold', type=int, default=None,
-        metavar="INT",
-        help="Vocabulary threshold. If vocabulary is provided, any word with frequency < threshold will be treated as OOV")
-    parser.add_argument(
-        '--glossaries', type=str, nargs='+', default=None,
-        metavar="STR",
-        help="Glossaries. The strings provided in glossaries will not be affected"+
-             "by the BPE (i.e. they will neither be broken into subwords, nor concatenated with other subwords")
-
-    return parser
 
 def get_pairs(word):
     """Return set of symbol pairs in a word.
@@ -264,7 +216,7 @@ def isolate_glossary(word, glossary):
     """
     Isolate a glossary present inside a word.
 
-    Returns a list of subwords. In which all 'glossary' glossaries are isolated 
+    Returns a list of subwords. In which all 'glossary' glossaries are isolated
 
     For example, if 'USA' is the glossary and '1934USABUSA' the word, the return value is:
         ['1934', 'USA', 'B', 'USA']
@@ -275,38 +227,3 @@ def isolate_glossary(word, glossary):
         splits = word.split(glossary)
         segments = [segment.strip() for split in splits[:-1] for segment in [split, glossary] if segment != '']
         return segments + [splits[-1].strip()] if splits[-1] != '' else segments
-
-if __name__ == '__main__':
-
-    # python 2/3 compatibility
-    if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
-        sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
-        sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
-        sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', write_through=True, line_buffering=True)
-
-    parser = create_parser()
-    args = parser.parse_args()
-
-    # read/write files as UTF-8
-    args.codes = codecs.open(args.codes.name, encoding='utf-8')
-    if args.input.name != '<stdin>':
-        args.input = codecs.open(args.input.name, encoding='utf-8')
-    if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
-    if args.vocabulary:
-        args.vocabulary = codecs.open(args.vocabulary.name, encoding='utf-8')
-
-    if args.vocabulary:
-        vocabulary = read_vocabulary(args.vocabulary, args.vocabulary_threshold)
-    else:
-        vocabulary = None
-
-    bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
-
-    for line in args.input:
-        args.output.write(bpe.segment(line).strip())
-        args.output.write('\n')

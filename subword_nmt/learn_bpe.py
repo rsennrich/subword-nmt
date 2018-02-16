@@ -1,8 +1,7 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
 # Author: Rico Sennrich
 
-"""Use byte pair encoding (BPE) to learn a variable-length encoding of the vocabulary in a text.
+"""
+Use byte pair encoding (BPE) to learn a variable-length encoding of the vocabulary in a text.
 Unlike the original BPE, it does not compress the plain text, but can be used to reduce the vocabulary
 of a text to a configurable number of symbols, with only a small increase in the number of tokens.
 
@@ -14,43 +13,10 @@ Proceedings of the 54th Annual Meeting of the Association for Computational Ling
 from __future__ import unicode_literals
 
 import sys
-import codecs
 import re
 import copy
-import argparse
 from collections import defaultdict, Counter
 
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
-
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="learn BPE-based word segmentation")
-
-    parser.add_argument(
-        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
-        metavar='PATH',
-        help="Input text (default: standard input).")
-
-    parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
-        metavar='PATH',
-        help="Output file for BPE codes (default: standard output)")
-    parser.add_argument(
-        '--symbols', '-s', type=int, default=10000,
-        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
-    parser.add_argument(
-        '--min-frequency', type=int, default=2, metavar='FREQ',
-        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
-    parser.add_argument('--dict-input', action="store_true",
-        help="If set, input file is interpreted as a dictionary where each line contains a word-count pair")
-    parser.add_argument(
-        '--verbose', '-v', action="store_true",
-        help="verbose mode.")
-
-    return parser
 
 def get_vocabulary(fobj, is_dict=False):
     """Read text and return dictionary that encodes vocabulary
@@ -183,7 +149,7 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False):
+def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
@@ -224,27 +190,3 @@ def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=F
         stats[most_frequent] = 0
         if not i % 100:
             prune_stats(stats, big_stats, threshold)
-
-
-if __name__ == '__main__':
-
-    # python 2/3 compatibility
-    if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
-
-    parser = create_parser()
-    args = parser.parse_args()
-
-    # read/write files as UTF-8
-    if args.input.name != '<stdin>':
-        args.input = codecs.open(args.input.name, encoding='utf-8')
-    if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
-
-    main(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
