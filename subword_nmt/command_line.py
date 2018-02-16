@@ -20,8 +20,8 @@ AVAILABLE_COMMANDS = [
 argparse.open = io.open
 
 
-def create_learn_bpe_parser():
-    parser = argparse.ArgumentParser(
+def create_learn_bpe_parser(subparsers):
+    parser = subparsers.add_parser('learn-bpe',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="learn BPE-based word segmentation")
 
@@ -48,8 +48,8 @@ def create_learn_bpe_parser():
     return parser
 
 
-def create_apply_bpe_parser():
-    parser = argparse.ArgumentParser(
+def create_apply_bpe_parser(subparsers):
+    parser = subparsers.add_parser('apply-bpe',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="learn BPE-based word segmentation")
 
@@ -90,8 +90,8 @@ def create_apply_bpe_parser():
     return parser
 
 
-def create_get_vocab_parser():
-    parser = argparse.ArgumentParser(
+def create_get_vocab_parser(subparsers):
+    parser = subparsers.add_parser('get-vocab',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="Generates vocabulary")
 
@@ -108,8 +108,8 @@ def create_get_vocab_parser():
     return parser
 
 
-def create_segment_char_ngrams_parser():
-    parser = argparse.ArgumentParser(
+def create_segment_char_ngrams_parser(subparsers):
+    parser = subparsers.add_parser('segment-char-ngrams',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         description="segment rare words into character n-grams")
 
@@ -144,14 +144,14 @@ def main():
         description="subword-nmt segmentation")
     subparsers = parser.add_subparsers(dest='command', help='Command to run')
 
-    learn_bpe_parser = create_learn_bpe_parser()
-    apply_bpe_parser = create_apply_bpe_parser()
-    get_vocab_parser = create_get_vocab_parser()
-    segment_char_ngrams_parser = create_segment_char_ngrams_parser()
+    learn_bpe_parser = create_learn_bpe_parser(subparsers)
+    apply_bpe_parser = create_apply_bpe_parser(subparsers)
+    get_vocab_parser = create_get_vocab_parser(subparsers)
+    segment_char_ngrams_parser = create_segment_char_ngrams_parser(subparsers)
 
     args = parser.parse_args()
 
-    if args.command == 'learn_bpe':
+    if args.command == 'learn-bpe':
         # read/write files as UTF-8
         if args.input.name != '<stdin>':
             args.input = codecs.open(args.input.name, encoding='utf-8')
@@ -159,7 +159,7 @@ def main():
             args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
         learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
-    elif args.command == 'apply_bpe':
+    elif args.command == 'apply-bpe':
         # read/write files as UTF-8
         args.codes = codecs.open(args.codes.name, encoding='utf-8')
         if args.input.name != '<stdin>':
