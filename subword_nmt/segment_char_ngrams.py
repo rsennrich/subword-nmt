@@ -2,6 +2,8 @@
 
 from __future__ import unicode_literals, division
 
+import codecs
+
 
 def segment_char_ngrams(args):
     # read/write files as UTF-8
