@@ -175,6 +175,7 @@ def main():
     apply_bpe_parser = create_apply_bpe_parser(subparsers)
     get_vocab_parser = create_get_vocab_parser(subparsers)
     segment_char_ngrams_parser = create_segment_char_ngrams_parser(subparsers)
+    learn_joint_bpe_and_vocab_parser = create_learn_joint_bpe_and_vocab_parser(subparsers)
 
     args = parser.parse_args()
 
