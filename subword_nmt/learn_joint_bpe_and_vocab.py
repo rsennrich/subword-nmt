@@ -18,8 +18,8 @@ import codecs
 import tempfile
 from collections import Counter
 
-from learn_bpe import learn_bpe, get_vocabulary
-from apply_bpe import BPE
+from subword_nmt.learn_bpe import learn_bpe, get_vocabulary
+from subword_nmt.apply_bpe import BPE
 
 
 def learn_joint_bpe_and_vocab(args):
