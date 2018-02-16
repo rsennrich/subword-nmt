@@ -7,14 +7,8 @@ from subword_nmt.learn_bpe import learn_bpe
 from subword_nmt.apply_bpe import BPE, read_vocabulary
 from subword_nmt.get_vocab import get_vocab
 from subword_nmt.segment_char_ngrams import segment_char_ngrams
+from subword_nmt.learn_joint_bpe_and_vocab import learn_joint_bpe_and_vocab
 
-
-AVAILABLE_COMMANDS = [
-    'learn_bpe',
-    'apply_bpe',
-    'get-vocab',
-    'segment-char-ngrams'
-]
 
 # hack for python2/3 compatibility
 argparse.open = io.open
@@ -138,6 +132,39 @@ def create_segment_char_ngrams_parser(subparsers):
     return parser
 
 
+def create_learn_joint_bpe_and_vocab_parser(subparsers):
+    parser = subparsers.add_parser('learn-joint-bpe-and-vocab',
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description="learn BPE-based word segmentation")
+
+    parser.add_argument(
+        '--input', '-i', type=argparse.FileType('r'), required=True, nargs = '+',
+        metavar='PATH',
+        help="Input texts (multiple allowed).")
+    parser.add_argument(
+        '--output', '-o', type=argparse.FileType('w'), required=True,
+        metavar='PATH',
+        help="Output file for BPE codes.")
+    parser.add_argument(
+        '--symbols', '-s', type=int, default=10000,
+        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
+    parser.add_argument(
+        '--separator', type=str, default='@@', metavar='STR',
+        help="Separator between non-final subword units (default: '%(default)s'))")
+    parser.add_argument(
+        '--write-vocabulary', type=argparse.FileType('w'), nargs = '+', default=None,
+        metavar='PATH', dest='vocab',
+        help='Write to these vocabulary files after applying BPE. One per input text. Used for filtering in apply_bpe.py')
+    parser.add_argument(
+        '--min-frequency', type=int, default=2, metavar='FREQ',
+        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
+    parser.add_argument(
+        '--verbose', '-v', action="store_true",
+        help="verbose mode.")
+
+    return parser
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -183,6 +210,8 @@ def main():
         get_vocab(args.train_file, args.vocab_file)
     elif args.command == 'segment-char-ngrams':
         segment_char_ngrams(args)
+    elif args.command == 'learn-joint-bpe-and-vocab':
+        learn_joint_bpe_and_vocab(args)
     else:
         raise Exception('Invalid command provided')
 
