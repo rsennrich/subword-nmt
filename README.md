@@ -5,6 +5,14 @@ This repository contains preprocessing scripts to segment text into subword
 units. The primary purpose is to facilitate the reproduction of our experiments
 on Neural Machine Translation with subword units (see below for reference).
 
+INSTALLATION
+------------
+
+Clone or copy this repository and follow the usage instructions below.
+
+For an installable package, see https://github.com/rsennrich/subword-nmt/tree/package
+
+
 USAGE INSTRUCTIONS
 ------------------
 
