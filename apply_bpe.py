@@ -54,6 +54,9 @@ class BPE(object):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
         output = []
         for word in sentence.split(' '):
+            # eliminate double spaces
+            if not word:
+                continue
             new_word = [out for segment in self._isolate_glossaries(word)
                         for out in encode(segment,
                                           self.bpe_codes,
