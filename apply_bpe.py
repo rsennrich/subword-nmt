@@ -53,7 +53,7 @@ class BPE(object):
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
         output = []
-        for word in sentence.split():
+        for word in sentence.split(' '):
             new_word = [out for segment in self._isolate_glossaries(word)
                         for out in encode(segment,
                                           self.bpe_codes,
@@ -309,4 +309,4 @@ if __name__ == '__main__':
 
     for line in args.input:
         args.output.write(bpe.segment(line).strip())
-        args.output.write('\n')
+        args.output.write(line[-1])
