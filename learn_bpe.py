@@ -56,12 +56,16 @@ def get_vocabulary(fobj, is_dict=False):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
-    for line in fobj:
+    for i, line in enumerate(fobj):
         if is_dict:
-            word, count = line.strip().split()
+            try:
+                word, count = line.strip().split(' ')
+            except:
+                print('Failed reading vocabulary file at line {0}: {1}'.format(i, line))
+                sys.exit(1)
             vocab[word] += int(count)
         else:
-            for word in line.split():
+            for word in line.strip().split(' '):
                 vocab[word] += 1
     return vocab
 
