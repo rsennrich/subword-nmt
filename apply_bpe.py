@@ -28,12 +28,12 @@ class BPE(object):
     def __init__(self, codes, merges=-1, separator='@@', vocab=None, glossaries=None):
 
         # check version information
+        codes.seek(0)
         firstline = codes.readline()
         if firstline.startswith('#version:'):
             self.version = tuple([int(x) for x in re.sub(r'(\.0+)*$','', firstline.split()[-1]).split(".")])
         else:
             self.version = (0, 1)
-            codes.seek(0)
 
         self.bpe_codes = [tuple(item.split()) for (n, item) in enumerate(codes) if (n < merges or merges == -1)]
 
