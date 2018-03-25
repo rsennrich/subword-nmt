@@ -313,5 +313,6 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
-        args.output.write(bpe.segment(line.strip()))
-        args.output.write(line[-1])
+        stripped = line.strip()
+        args.output.write(bpe.segment(stripped))
+        args.output.write(line[len(stripped):len(line)])
