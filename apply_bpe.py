@@ -27,6 +27,8 @@ class BPE(object):
 
     def __init__(self, codes, merges=-1, separator='@@', vocab=None, glossaries=None):
 
+        codes.seek(0)
+
         # check version information
         firstline = codes.readline()
         if firstline.startswith('#version:'):
