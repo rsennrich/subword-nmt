@@ -7,7 +7,8 @@ c = Counter()
 
 for line in sys.stdin:
     for word in line.strip().split(' '):
-        c[word] += 1
+        if word:
+            c[word] += 1
 
 for key,f in sorted(c.items(), key=lambda x: x[1], reverse=True):
     print(key+" "+ str(f))

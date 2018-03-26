@@ -66,7 +66,8 @@ def get_vocabulary(fobj, is_dict=False):
             vocab[word] += int(count)
         else:
             for word in line.strip().split(' '):
-                vocab[word] += 1
+                if word:
+                    vocab[word] += 1
     return vocab
 
 def update_pair_statistics(pair, changed, stats, indices):
