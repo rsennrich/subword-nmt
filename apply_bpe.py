@@ -313,6 +313,12 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
-        stripped = line.strip()
-        args.output.write(bpe.segment(stripped))
-        args.output.write(line[len(stripped):len(line)])
+        leading_whitespace = len(line)-len(line.lstrip())
+        if leading_whitespace:
+            args.output.write(line[:leading_whitespace])
+
+        args.output.write(bpe.segment(line.strip()))
+
+        trailing_whitespace = len(line)-len(line.rstrip())
+        if trailing_whitespace:
+            args.output.write(line[-trailing_whitespace:])
