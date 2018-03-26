@@ -41,8 +41,12 @@ class BPE(object):
 
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
-
-        self.bpe_codes_reverse = dict([(pair[0] + pair[1], pair) for pair,i in self.bpe_codes.items()])
+        reverse_codes=dict()
+        for pair,i in self.bpe_codes.items():
+            if len(pair) > 1:
+              reverse_codes[(pair[0], pair[1])] = pair
+       
+        self.bpe_codes_reverse = reverse_codes 
 
         self.separator = separator
 
@@ -299,11 +303,11 @@ if __name__ == '__main__':
     # read/write files as UTF-8
     args.codes = codecs.open(args.codes.name, encoding='utf-8')
     if args.input.name != '<stdin>':
-        args.input = codecs.open(args.input.name, encoding='utf-8')
+        args.input = codecs.open(args.input.name, encoding='utf-8',  errors='ignore')
     if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+        args.output = codecs.open(args.output.name, 'w', encoding='utf-8', errors='ignore')
     if args.vocabulary:
-        args.vocabulary = codecs.open(args.vocabulary.name, encoding='utf-8')
+        args.vocabulary = codecs.open(args.vocabulary.name, encoding='utf-8', errors='ignore')
 
     if args.vocabulary:
         vocabulary = read_vocabulary(args.vocabulary, args.vocabulary_threshold)
