@@ -37,7 +37,13 @@ class BPE(object):
             self.version = (0, 1)
             codes.seek(0)
 
-        self.bpe_codes = [tuple(item.split()) for (n, item) in enumerate(codes) if (n < merges or merges == -1)]
+        self.bpe_codes = [tuple(item.strip().split(' ')) for (n, item) in enumerate(codes) if (n < merges or merges == -1)]
+
+        for item in self.bpe_codes:
+            if len(item) != 2:
+                sys.stderr.write('Error: invalid line in BPE codes file: {0}\n'.format(' '.join(item)))
+                sys.stderr.write('The line should exist of exactly two subword units, separated by whitespace\n'.format(' '.join(item)))
+                sys.exit(1)
 
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
@@ -258,7 +264,7 @@ def read_vocabulary(vocab_file, threshold):
     vocabulary = set()
 
     for line in vocab_file:
-        word, freq = line.split()
+        word, freq = line.strip().split(' ')
         freq = int(freq)
         if threshold == None or freq >= threshold:
             vocabulary.add(word)

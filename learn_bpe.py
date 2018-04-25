@@ -165,7 +165,7 @@ def replace_pair(pair, vocab, indices):
         word, freq = vocab[j]
         new_word = ' '.join(word)
         new_word = pattern.sub(pair_str, new_word)
-        new_word = tuple(new_word.split())
+        new_word = tuple(new_word.split(' '))
 
         vocab[j] = (new_word, freq)
         changes.append((j, new_word, word, freq))
