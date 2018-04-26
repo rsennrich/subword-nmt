@@ -58,10 +58,27 @@ class BPE(object):
 
         self.cache = {}
 
+    def process_line(self, line):
+        """segment line, dealing with leading and trailing whitespace"""
+
+        out = ""
+
+        leading_whitespace = len(line)-len(line.lstrip())
+        if leading_whitespace:
+            out += line[:leading_whitespace]
+
+        out += self.segment(line)
+
+        trailing_whitespace = len(line)-len(line.rstrip())
+        if trailing_whitespace:
+            out += line[-trailing_whitespace:]
+
+        return out
+
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
         output = []
-        for word in sentence.split(' '):
+        for word in sentence.strip().split(' '):
             # eliminate double spaces
             if not word:
                 continue
@@ -319,12 +336,4 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
-        leading_whitespace = len(line)-len(line.lstrip())
-        if leading_whitespace:
-            args.output.write(line[:leading_whitespace])
-
-        args.output.write(bpe.segment(line.strip()))
-
-        trailing_whitespace = len(line)-len(line.rstrip())
-        if trailing_whitespace:
-            args.output.write(line[-trailing_whitespace:])
+        args.output.write(bpe.process_line(line))
