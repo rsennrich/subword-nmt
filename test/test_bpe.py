@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+from __future__ import unicode_literals
 import unittest
 import codecs
 
@@ -51,6 +52,24 @@ class TestBPESegmentMethod(unittest.TestCase):
         for line, ref in zip(self.infile, self.reffile):
             out = self.bpe.process_line(line)
             self.assertEqual(out, ref)
+
+    def test_trailing_whitespace(self):
+        """BPE.proces_line() preserves leading and trailing whitespace"""
+
+        orig = '  iron cement  \n'
+        exp = '  ir@@ on c@@ ement  \n'
+
+        out = self.bpe.process_line(orig)
+        self.assertEqual(out, exp)
+
+    def test_utf8_whitespace(self):
+        """UTF-8 whitespace is treated as normal character, not word boundary"""
+
+        orig = 'iron\xa0cement\n'
+        exp = 'ir@@ on@@ \xa0@@ c@@ ement\n'
+
+        out = self.bpe.process_line(orig)
+        self.assertEqual(out, exp)
 
 if __name__ == '__main__':
     unittest.main()
