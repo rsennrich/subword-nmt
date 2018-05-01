@@ -6,7 +6,7 @@ from collections import Counter
 c = Counter()
 
 for line in sys.stdin:
-    for word in line.strip().split(' '):
+    for word in line.strip('\r\n ').split(' '):
         if word:
             c[word] += 1
 

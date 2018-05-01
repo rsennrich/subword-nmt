@@ -28,20 +28,22 @@ class BPE(object):
     def __init__(self, codes, merges=-1, separator='@@', vocab=None, glossaries=None):
 
         codes.seek(0)
+        offset=1
 
         # check version information
         firstline = codes.readline()
         if firstline.startswith('#version:'):
             self.version = tuple([int(x) for x in re.sub(r'(\.0+)*$','', firstline.split()[-1]).split(".")])
+            offset += 1
         else:
             self.version = (0, 1)
             codes.seek(0)
 
-        self.bpe_codes = [tuple(item.strip().split(' ')) for (n, item) in enumerate(codes) if (n < merges or merges == -1)]
+        self.bpe_codes = [tuple(item.strip('\r\n ').split(' ')) for (n, item) in enumerate(codes) if (n < merges or merges == -1)]
 
-        for item in self.bpe_codes:
+        for i, item in enumerate(self.bpe_codes):
             if len(item) != 2:
-                sys.stderr.write('Error: invalid line in BPE codes file: {0}\n'.format(' '.join(item)))
+                sys.stderr.write('Error: invalid line {0} in BPE codes file: {1}\n'.format(i+offset, ' '.join(item)))
                 sys.stderr.write('The line should exist of exactly two subword units, separated by whitespace\n'.format(' '.join(item)))
                 sys.exit(1)
 
@@ -78,7 +80,7 @@ class BPE(object):
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
         output = []
-        for word in sentence.strip().split(' '):
+        for word in sentence.strip('\r\n ').split(' '):
             # eliminate double spaces
             if not word:
                 continue
@@ -281,7 +283,7 @@ def read_vocabulary(vocab_file, threshold):
     vocabulary = set()
 
     for line in vocab_file:
-        word, freq = line.strip().split(' ')
+        word, freq = line.strip('\r\n ').split(' ')
         freq = int(freq)
         if threshold == None or freq >= threshold:
             vocabulary.add(word)
@@ -301,8 +303,8 @@ def isolate_glossary(word, glossary):
         return [word]
     else:
         splits = word.split(glossary)
-        segments = [segment.strip() for split in splits[:-1] for segment in [split, glossary] if segment != '']
-        return segments + [splits[-1].strip()] if splits[-1] != '' else segments
+        segments = [segment.strip('\r\n ') for split in splits[:-1] for segment in [split, glossary] if segment != '']
+        return segments + [splits[-1].strip('\r\n ')] if splits[-1] != '' else segments
 
 if __name__ == '__main__':
 
