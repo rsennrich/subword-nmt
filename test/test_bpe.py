@@ -71,5 +71,13 @@ class TestBPESegmentMethod(unittest.TestCase):
         out = self.bpe.process_line(orig)
         self.assertEqual(out, exp)
 
+    def test_empty_line(self):
+
+        orig = '\n'
+        exp = '\n'
+
+        out = self.bpe.process_line(orig)
+        self.assertEqual(out, exp)
+
 if __name__ == '__main__':
     unittest.main()

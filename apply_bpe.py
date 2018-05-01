@@ -65,14 +65,14 @@ class BPE(object):
 
         out = ""
 
-        leading_whitespace = len(line)-len(line.lstrip())
+        leading_whitespace = len(line)-len(line.lstrip('\r\n '))
         if leading_whitespace:
             out += line[:leading_whitespace]
 
         out += self.segment(line)
 
-        trailing_whitespace = len(line)-len(line.rstrip())
-        if trailing_whitespace:
+        trailing_whitespace = len(line)-len(line.rstrip('\r\n '))
+        if trailing_whitespace and trailing_whitespace != len(line):
             out += line[-trailing_whitespace:]
 
         return out
