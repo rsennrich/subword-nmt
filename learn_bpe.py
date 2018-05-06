@@ -248,8 +248,8 @@ if __name__ == '__main__':
 
     # read/write files as UTF-8
     if args.input.name != '<stdin>':
-        args.input = codecs.open(args.input.name, encoding='utf-8')
+        args.input = codecs.open(args.input.name, encoding='utf-8', errors='ignore')
     if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+        args.output = codecs.open(args.output.name, 'w', encoding='utf-8', errors='ignore')
 
     main(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
