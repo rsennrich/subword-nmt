@@ -6,28 +6,31 @@ import argparse
 from subword_nmt.learn_bpe import learn_bpe
 from subword_nmt.apply_bpe import BPE, read_vocabulary
 from subword_nmt.get_vocab import get_vocab
-from subword_nmt.segment_char_ngrams import segment_char_ngrams
 from subword_nmt.learn_joint_bpe_and_vocab import learn_joint_bpe_and_vocab
 
 from subword_nmt.learn_bpe import create_parser as create_learn_bpe_parser
 from subword_nmt.apply_bpe import create_parser as create_apply_bpe_parser
 from subword_nmt.get_vocab import create_parser as create_get_vocab_parser
 from subword_nmt.learn_joint_bpe_and_vocab import create_parser as create_learn_joint_bpe_and_vocab_parser
-from subword_nmt.segment_char_ngrams import create_parser as create_segment_char_ngrams_parser
 
 # hack for python2/3 compatibility
 argparse.open = io.open
 
 def main():
     parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="subword-nmt segmentation")
-    subparsers = parser.add_subparsers(dest='command', help='Command to run')
+        formatter_class=argparse.RawTextHelpFormatter,
+        description="subword-nmt: unsupervised word segmentation for neural machine translation and text generation ")
+    subparsers = parser.add_subparsers(dest='command',
+                                       help="""command to run. Run one of the commands with '-h' for more info.
+
+learn-bpe: learn BPE merge operations on input text.
+apply-bpe: apply given BPE operations to input text.
+get-vocab: extract vocabulary and word frequencies from input text.
+learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
 
     learn_bpe_parser = create_learn_bpe_parser(subparsers)
     apply_bpe_parser = create_apply_bpe_parser(subparsers)
     get_vocab_parser = create_get_vocab_parser(subparsers)
-    segment_char_ngrams_parser = create_segment_char_ngrams_parser(subparsers)
     learn_joint_bpe_and_vocab_parser = create_learn_joint_bpe_and_vocab_parser(subparsers)
 
     args = parser.parse_args()
@@ -66,8 +69,6 @@ def main():
         if args.vocab_file.name != '<stdout>':
             args.vocab_file = codecs.open(args.vocab_file.name, 'w', encoding='utf-8')
         get_vocab(args.train_file, args.vocab_file)
-    elif args.command == 'segment-char-ngrams':
-        segment_char_ngrams(args)
     elif args.command == 'learn-joint-bpe-and-vocab':
         learn_joint_bpe_and_vocab(args)
     else:
