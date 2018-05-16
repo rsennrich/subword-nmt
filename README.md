@@ -34,6 +34,9 @@ The original segmentation can be restored with a simple replacement:
 
     sed -r 's/(@@ )|(@@ ?$)//g'
 
+If you cloned the repository and did not install a package, you can also run `subword_nmt.py` as a script:
+
+    ./subword-nmt/subword_nmt.py learn-bpe -s {num_operations} < {train_file} > {codes_file}
 
 BEST PRACTICE ADVICE FOR BYTE PAIR ENCODING IN NMT
 --------------------------------------------------

@@ -1,17 +1,20 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import io
 import sys
 import codecs
 import argparse
 
-from subword_nmt.learn_bpe import learn_bpe
-from subword_nmt.apply_bpe import BPE, read_vocabulary
-from subword_nmt.get_vocab import get_vocab
-from subword_nmt.learn_joint_bpe_and_vocab import learn_joint_bpe_and_vocab
+from learn_bpe import learn_bpe
+from apply_bpe import BPE, read_vocabulary
+from get_vocab import get_vocab
+from learn_joint_bpe_and_vocab import learn_joint_bpe_and_vocab
 
-from subword_nmt.learn_bpe import create_parser as create_learn_bpe_parser
-from subword_nmt.apply_bpe import create_parser as create_apply_bpe_parser
-from subword_nmt.get_vocab import create_parser as create_get_vocab_parser
-from subword_nmt.learn_joint_bpe_and_vocab import create_parser as create_learn_joint_bpe_and_vocab_parser
+from learn_bpe import create_parser as create_learn_bpe_parser
+from apply_bpe import create_parser as create_apply_bpe_parser
+from get_vocab import create_parser as create_get_vocab_parser
+from learn_joint_bpe_and_vocab import create_parser as create_learn_joint_bpe_and_vocab_parser
 
 # hack for python2/3 compatibility
 argparse.open = io.open

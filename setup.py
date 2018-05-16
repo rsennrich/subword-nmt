@@ -19,7 +19,7 @@ setup(
     test_suite='setup.test_suite',
     packages=find_packages(),
     entry_points={
-        'console_scripts': ['subword-nmt=subword_nmt.command_line:main'],
+        'console_scripts': ['subword-nmt=subword_nmt.subword_nmt:main'],
     },
     include_package_data=True
 )
