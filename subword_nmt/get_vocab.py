@@ -1,6 +1,11 @@
 #! /usr/bin/env python
 from __future__ import print_function
+
+import os
 import sys
+import inspect
+import warnings
+
 from collections import Counter
 
 # hack for python2/3 compatibility
@@ -43,6 +48,15 @@ def get_vocab(train_file, vocab_file):
         vocab_file.write(key+" "+ str(f) + "\n")
 
 if __name__ == "__main__":
+
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    newdir = os.path.join(currentdir, 'subword_nmt')
+    if os.path.isdir(newdir):
+        warnings.simplefilter('default')
+        warnings.warn(
+            "this script's location has moved to {0}. This symbolic link will be removed in a future version. Please point to the new location, or install the package and use the command 'subword-nmt'".format(newdir),
+            DeprecationWarning
+        )
 
     # python 2/3 compatibility
     if sys.version_info < (3, 0):

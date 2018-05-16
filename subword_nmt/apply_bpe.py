@@ -14,10 +14,13 @@ Proceedings of the 54th Annual Meeting of the Association for Computational Ling
 from __future__ import unicode_literals, division
 
 import sys
+import os
+import inspect
 import codecs
 import io
 import argparse
 import re
+import warnings
 
 # hack for python2/3 compatibility
 from io import open
@@ -313,6 +316,15 @@ def isolate_glossary(word, glossary):
         return segments + [splits[-1].strip('\r\n ')] if splits[-1] != '' else segments
 
 if __name__ == '__main__':
+
+    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+    newdir = os.path.join(currentdir, 'subword_nmt')
+    if os.path.isdir(newdir):
+        warnings.simplefilter('default')
+        warnings.warn(
+            "this script's location has moved to {0}. This symbolic link will be removed in a future version. Please point to the new location, or install the package and use the command 'subword-nmt'".format(newdir),
+            DeprecationWarning
+        )
 
     # python 2/3 compatibility
     if sys.version_info < (3, 0):

@@ -1,6 +1,13 @@
 CHANGELOG
 ---------
 
+v0.3:
+ - library is now installable via pip
+ - fix occasional problems with UTF-8 whitespace and new lines in learn_bpe and apply_bpe.
+   - do not silently convert UTF-8 newline characters into "\n"
+   - do not silently convert UTF-8 whitespace characters into " "
+   - UTF-8 whitespace and newline characters are now considered part of a word, and segmented by BPE
+
 v0.2:
  - different, more consistent handling of end-of-word token (commit a749a7) (https://github.com/rsennrich/subword-nmt/issues/19)
  - allow passing of vocabulary and frequency threshold to apply_bpe.py, preventing the production of OOV (or rare) subword units (commit a00db)
