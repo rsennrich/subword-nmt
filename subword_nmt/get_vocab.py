@@ -26,12 +26,12 @@ def create_parser(subparsers=None):
             description="Generates vocabulary")
 
     parser.add_argument(
-        '--train_file', type=argparse.FileType('r'), default=sys.stdin,
+        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
         metavar='PATH',
         help="Input file (default: standard input).")
 
     parser.add_argument(
-        '--vocab_file', type=argparse.FileType('w'), default=sys.stdout,
+        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
         metavar='PATH',
         help="Output file (default: standard output)")
 
@@ -73,9 +73,10 @@ if __name__ == "__main__":
     parser = create_parser()
     args = parser.parse_args()
 
-    if args.train_file.name != '<stdin>':
-        args.train_file = codecs.open(args.train_file.name, encoding='utf-8')
-    if args.vocab_file.name != '<stdout>':
-        args.vocab_file = codecs.open(args.vocab_file.name, 'w', encoding='utf-8')
+    # read/write files as UTF-8
+    if args.input.name != '<stdin>':
+        args.input = codecs.open(args.input.name, encoding='utf-8')
+    if args.output.name != '<stdout>':
+        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    get_vocab(args.train_file, args.vocab_file)
+    get_vocab(args.input, args.output)

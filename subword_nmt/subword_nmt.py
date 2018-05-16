@@ -67,11 +67,11 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
             args.output.write(bpe.process_line(line))
 
     elif args.command == 'get-vocab':
-        if args.train_file.name != '<stdin>':
-            args.train_file = codecs.open(args.train_file.name, encoding='utf-8')
-        if args.vocab_file.name != '<stdout>':
-            args.vocab_file = codecs.open(args.vocab_file.name, 'w', encoding='utf-8')
-        get_vocab(args.train_file, args.vocab_file)
+        if args.input.name != '<stdin>':
+            args.input = codecs.open(args.input.name, encoding='utf-8')
+        if args.output.name != '<stdout>':
+            args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+        get_vocab(args.input, args.output)
     elif args.command == 'learn-joint-bpe-and-vocab':
         learn_joint_bpe_and_vocab(args)
     else:
