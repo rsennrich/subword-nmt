@@ -24,10 +24,16 @@ from collections import defaultdict, Counter
 from io import open
 argparse.open = open
 
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="learn BPE-based word segmentation")
+def create_parser(subparsers=None):
+
+    if subparsers:
+        parser = subparsers.add_parser('learn-bpe',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
+    else:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
 
     parser.add_argument(
         '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
@@ -188,7 +194,7 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def main(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False):
+def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
@@ -252,4 +258,4 @@ if __name__ == '__main__':
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    main(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
+    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)

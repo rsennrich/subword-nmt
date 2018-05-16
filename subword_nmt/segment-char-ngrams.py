@@ -12,10 +12,16 @@ import argparse
 from io import open
 argparse.open = open
 
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="segment rare words into character n-grams")
+def create_parser(subparsers=None):
+
+    if subparsers:
+        parser = subparsers.add_parser('segment-char-ngrams',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="segment rare words into character n-grams")
+    else:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="segment rare words into character n-grams")
 
     parser.add_argument(
         '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
@@ -41,6 +47,25 @@ def create_parser():
 
     return parser
 
+def segment_char_ngrams(args):
+
+    vocab = [line.split()[0] for line in args.vocab if len(line.split()) == 2]
+    vocab = dict((y,x) for (x,y) in enumerate(vocab))
+
+    for line in args.input:
+      for word in line.split():
+        if word not in vocab or vocab[word] > args.shortlist:
+          i = 0
+          while i*args.n < len(word):
+            args.output.write(word[i*args.n:i*args.n+args.n])
+            i += 1
+            if i*args.n < len(word):
+              args.output.write(args.separator)
+            args.output.write(' ')
+        else:
+          args.output.write(word + ' ')
+      args.output.write('\n')
+
 
 if __name__ == '__main__':
 
@@ -64,19 +89,4 @@ if __name__ == '__main__':
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    vocab = [line.split()[0] for line in args.vocab if len(line.split()) == 2]
-    vocab = dict((y,x) for (x,y) in enumerate(vocab))
-
-    for line in args.input:
-      for word in line.split():
-        if word not in vocab or vocab[word] > args.shortlist:
-          i = 0
-          while i*args.n < len(word):
-            args.output.write(word[i*args.n:i*args.n+args.n])
-            i += 1
-            if i*args.n < len(word):
-              args.output.write(args.separator)
-            args.output.write(' ')
-        else:
-          args.output.write(word + ' ')
-      args.output.write('\n')
+    segment_char_ngrams(args)

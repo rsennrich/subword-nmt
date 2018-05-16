@@ -28,10 +28,16 @@ import apply_bpe
 from io import open
 argparse.open = open
 
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="learn BPE-based word segmentation")
+def create_parser(subparsers=None):
+
+    if subparsers:
+        parser = subparsers.add_parser('learn-joint-bpe-and-vocab',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
+    else:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
 
     parser.add_argument(
         '--input', '-i', type=argparse.FileType('r'), required=True, nargs = '+',
@@ -48,7 +54,7 @@ def create_parser():
         '--separator', type=str, default='@@', metavar='STR',
         help="Separator between non-final subword units (default: '%(default)s'))")
     parser.add_argument(
-        '--write-vocabulary', type=argparse.FileType('w'), nargs = '+', default=None,
+        '--write-vocabulary', type=argparse.FileType('w'), required=True, nargs = '+', default=None,
         metavar='PATH', dest='vocab',
         help='Write to these vocabulary files after applying BPE. One per input text. Used for filtering in apply_bpe.py')
     parser.add_argument(
@@ -60,22 +66,7 @@ def create_parser():
 
     return parser
 
-
-
-if __name__ == '__main__':
-
-    # python 2/3 compatibility
-    if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
-
-    parser = create_parser()
-    args = parser.parse_args()
+def learn_joint_bpe_and_vocab(args):
 
     if args.vocab and len(args.input) != len(args.vocab):
         sys.stderr.write('Error: number of input files and vocabulary files must match\n')
@@ -95,7 +86,7 @@ if __name__ == '__main__':
 
     # learn BPE on combined vocabulary
     with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
-        learn_bpe.main(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
+        learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
         bpe = apply_bpe.BPE(codes, separator=args.separator)
@@ -123,3 +114,23 @@ if __name__ == '__main__':
         for key, freq in sorted(vocab.items(), key=lambda x: x[1], reverse=True):
             vocab_file.write("{0} {1}\n".format(key, freq))
         vocab_file.close()
+
+
+if __name__ == '__main__':
+
+    # python 2/3 compatibility
+    if sys.version_info < (3, 0):
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+    else:
+        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+
+    parser = create_parser()
+    args = parser.parse_args()
+
+    assert(len(args.input) == len(args.vocab))
+
+    learn_joint_bpe_and_vocab(args)

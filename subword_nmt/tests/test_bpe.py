@@ -10,7 +10,7 @@ currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentfram
 parentdir = os.path.dirname(currentdir)
 sys.path.insert(0,parentdir)
 
-import learn_bpe
+from learn_bpe import learn_bpe
 from apply_bpe import BPE
 
 
@@ -19,7 +19,7 @@ class TestBPELearnMethod(unittest.TestCase):
     def test_learn_bpe(self):
         infile = codecs.open(os.path.join(currentdir,'data','corpus.en'), encoding='utf-8')
         outfile = codecs.open(os.path.join(currentdir,'data','bpe.out'), 'w', encoding='utf-8')
-        learn_bpe.main(infile, outfile, 1000)
+        learn_bpe(infile, outfile, 1000)
         infile.close()
         outfile.close()
 

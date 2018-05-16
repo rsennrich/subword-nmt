@@ -107,10 +107,16 @@ class BPE(object):
                                  for out_segments in isolate_glossary(segment, gloss)]
         return word_segments
 
-def create_parser():
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-        description="learn BPE-based word segmentation")
+def create_parser(subparsers=None):
+
+    if subparsers:
+        parser = subparsers.add_parser('apply-bpe',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
+    else:
+        parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            description="learn BPE-based word segmentation")
 
     parser.add_argument(
         '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
