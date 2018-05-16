@@ -8,9 +8,11 @@ on Neural Machine Translation with subword units (see below for reference).
 INSTALLATION
 ------------
 
-Clone or copy this repository and follow the usage instructions below.
+install via pip:
 
-For an installable package, see https://github.com/rsennrich/subword-nmt/tree/package
+    pip install https://github.com/rsennrich/subword-nmt/archive/master.zip
+
+alternatively, clone this repository; the scripts are executable stand-alone.
 
 
 USAGE INSTRUCTIONS
@@ -20,13 +22,13 @@ Check the individual files for usage instructions.
 
 To apply byte pair encoding to word segmentation, invoke these commands:
 
-    ./learn_bpe.py -s {num_operations} < {train_file} > {codes_file}
-    ./apply_bpe.py -c {codes_file} < {test_file}
+    subword-nmt learn-bpe -s {num_operations} < {train_file} > {codes_file}
+    subword-nmt apply-bpe -c {codes_file} < {test_file} > {out_file}
 
 To segment rare words into character n-grams, do the following:
 
-    ./get_vocab.py < {train_file} > {vocab_file}
-    ./segment-char-ngrams.py --vocab {vocab_file} -n {order} --shortlist {size} < {test_file}
+    subword-nmt get-vocab --train_file {train_file} --vocab_file {vocab_file}
+    subword-nmt segment-char-ngrams --vocab {vocab_file} -n {order} --shortlist {size} < {test_file} > {out_file}
 
 The original segmentation can be restored with a simple replacement:
 
@@ -52,18 +54,18 @@ are the two languages):
 
 Learn byte pair encoding on the concatenation of the training text, and get resulting vocabulary for each:
 
-    cat {train_file}.L1 {train_file}.L2 | ./learn_bpe.py -s {num_operations} -o {codes_file}
-    ./apply_bpe.py -c {codes_file} < {train_file}.L1 | ./get_vocab.py > {vocab_file}.L1
-    ./apply_bpe.py -c {codes_file} < {train_file}.L2 | ./get_vocab.py > {vocab_file}.L2
+    cat {train_file}.L1 {train_file}.L2 | subword-nmt learn-bpe -s {num_operations} -o {codes_file}
+    subword-nmt apply-bpe -c {codes_file} < {train_file}.L1 && subword-nmt get-vocab --train_file {codes_file} --vocab_file {vocab_file}.L1
+    subword-nmt apply-bpe -c {codes_file} < {train_file}.L2 && subword-nmt get-vocab --train_file {codes_file} --vocab_file {vocab_file}.L2
 
 more conventiently, you can do the same with with this command:
 
-    ./learn_joint_bpe_and_vocab.py --input {train_file}.L1 {train_file}.L2 -s {num_operations} -o {codes_file} --write-vocabulary {vocab_file}.L1 {vocab_file}.L2
+    subword-nmt learn-joint-bpe-and-vocab --input {train_file}.L1 {train_file}.L2 -s {num_operations} -o {codes_file} --write-vocabulary {vocab_file}.L1 {vocab_file}.L2
 
 re-apply byte pair encoding with vocabulary filter:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {train_file}.L1 > {train_file}.BPE.L1
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L2 --vocabulary-threshold 50 < {train_file}.L2 > {train_file}.BPE.L2
+    subword-nmt apply-bpe -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {train_file}.L1 > {train_file}.BPE.L1
+    subword-nmt apply-bpe -c {codes_file} --vocabulary {vocab_file}.L2 --vocabulary-threshold 50 < {train_file}.L2 > {train_file}.BPE.L2
 
 as a last step, extract the vocabulary to be used by the neural network. Example with Nematus:
 
@@ -73,8 +75,7 @@ as a last step, extract the vocabulary to be used by the neural network. Example
 
 for test/dev data, re-use the same options for consistency:
 
-    ./apply_bpe.py -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {test_file}.L1 > {test_file}.BPE.L1
-
+    subword-nmt apply-bpe -c {codes_file} --vocabulary {vocab_file}.L1 --vocabulary-threshold 50 < {test_file}.L1 > {test_file}.BPE.L1
 
 PUBLICATIONS
 ------------
