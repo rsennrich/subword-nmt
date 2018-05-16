@@ -5,6 +5,8 @@ import os
 import sys
 import inspect
 import warnings
+import argparse
+import codecs
 
 from collections import Counter
 
@@ -19,7 +21,7 @@ def create_parser(subparsers=None):
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Generates vocabulary")
     else:
-        parser = subparsers.argparse.ArgumentParser(
+        parser = argparse.ArgumentParser(
             formatter_class=argparse.RawDescriptionHelpFormatter,
             description="Generates vocabulary")
 
