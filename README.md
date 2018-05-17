@@ -8,7 +8,11 @@ on Neural Machine Translation with subword units (see below for reference).
 INSTALLATION
 ------------
 
-install via pip:
+install via pip (from PyPI):
+
+    pip install subword-nmt
+
+install via pip (from Github):
 
     pip install https://github.com/rsennrich/subword-nmt/archive/master.zip
 
