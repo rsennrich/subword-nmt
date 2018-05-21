@@ -11,7 +11,7 @@ def test_suite():
 
 setup(
     name='subword_nmt',
-    version='0.3.2',
+    version='0.3.3',
     description='Unsupervised Word Segmentation for Neural Machine Translation and Text Generation',
     long_description=(codecs.open("README.md", encoding='utf-8').read() +
                       "\n\n" + codecs.open("CHANGELOG.md", encoding='utf-8').read()),

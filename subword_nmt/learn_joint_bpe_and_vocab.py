@@ -23,8 +23,13 @@ import tempfile
 import warnings
 from collections import Counter
 
-import learn_bpe
-import apply_bpe
+#hack to get imports working if running this as a script, or within a package
+if __name__ == '__main__':
+    import learn_bpe
+    import apply_bpe
+else:
+    from . import learn_bpe
+    from . import apply_bpe
 
 # hack for python2/3 compatibility
 from io import open
