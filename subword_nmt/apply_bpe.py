@@ -47,7 +47,7 @@ class BPE(object):
         for i, item in enumerate(self.bpe_codes):
             if len(item) != 2:
                 sys.stderr.write('Error: invalid line {0} in BPE codes file: {1}\n'.format(i+offset, ' '.join(item)))
-                sys.stderr.write('The line should exist of exactly two subword units, separated by whitespace\n'.format(' '.join(item)))
+                sys.stderr.write('The line should exist of exactly two subword units, separated by whitespace\n')
                 sys.exit(1)
 
         # some hacking to deal with duplicates (only consider first instance)
