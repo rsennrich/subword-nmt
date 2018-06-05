@@ -82,8 +82,13 @@ class BPE(object):
 
     def segment(self, sentence):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
+        segments = self.segment_tokens(sentence.strip('\r\n ').split(' '))
+        return ' '.join(segments)
+
+    def segment_tokens(self, tokens):
+        """segment a sequence of tokens with BPE encoding"""
         output = []
-        for word in sentence.strip('\r\n ').split(' '):
+        for word in tokens:
             # eliminate double spaces
             if not word:
                 continue
@@ -101,7 +106,7 @@ class BPE(object):
                 output.append(item + self.separator)
             output.append(new_word[-1])
 
-        return ' '.join(output)
+        return output
 
     def _isolate_glossaries(self, word):
         word_segments = [word]
