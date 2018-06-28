@@ -221,7 +221,7 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
         for word in vocab:
             for char in word[:-1]:
                 uniq_char_internal.add(char)
-            uniq_char_final.add(char[-1])
+            uniq_char_final.add(word[-1])
         sys.stderr.write('Number of word-internal characters: {0}\n'.format(len(uniq_char_internal)))
         sys.stderr.write('Number of word-final characters: {0}\n'.format(len(uniq_char_final)))
         sys.stderr.write('Reducing number of merge operations by {0}\n'.format(len(uniq_char_internal) + len(uniq_char_final)))
