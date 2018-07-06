@@ -157,8 +157,9 @@ def create_parser(subparsers=None):
     parser.add_argument(
         '--glossaries', type=str, nargs='+', default=None,
         metavar="STR",
-        help="Glossaries. The strings provided in glossaries will not be affected"+
-             "by the BPE (i.e. they will neither be broken into subwords, nor concatenated with other subwords")
+        help="Glossaries. Words matching any of the words/regex provided in glossaries will not be affected "+
+             "by the BPE (i.e. they will neither be broken into subwords, nor concatenated with other subwords. "+
+             "Can be provided as a list of words/regex after the --glossaries argument. Enclose each regex in quotes.")
 
     return parser
 
@@ -181,9 +182,10 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
     if orig in cache:
         return cache[orig]
 
-    if orig in glossaries:
-        cache[orig] = (orig,)
-        return (orig,)
+    for glossary in glossaries:
+        if re.match('^'+glossary+'$', orig):
+            cache[orig] = (orig,)
+            return (orig,)
 
     if version == (0, 1):
         word = tuple(orig) + ('</w>',)
@@ -313,11 +315,12 @@ def isolate_glossary(word, glossary):
     For example, if 'USA' is the glossary and '1934USABUSA' the word, the return value is:
         ['1934', 'USA', 'B', 'USA']
     """
-    if word == glossary or glossary not in word:
+    # regex equivalent of (if word == glossary or glossary not in word)
+    if re.match('^'+glossary+'$', word) or not re.search(glossary, word):
         return [word]
     else:
-        splits = word.split(glossary)
-        segments = [segment.strip('\r\n ') for split in splits[:-1] for segment in [split, glossary] if segment != '']
+        splits = re.split(glossary, word)
+        segments = [segment.strip('\r\n ') for (n_split, split) in enumerate(splits[:-1]) for segment in [split, re.findall(glossary, word)[n_split]] if segment != '']
         return segments + [splits[-1].strip('\r\n ')] if splits[-1] != '' else segments
 
 if __name__ == '__main__':
