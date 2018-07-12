@@ -361,7 +361,7 @@ if __name__ == '__main__':
     else:
         vocabulary = None
 
-    bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
+    bpe = BPE(args.codes, args.merges, args.separator.decode('utf-8'), vocabulary, args.glossaries)
 
     for line in args.input:
         args.output.write(bpe.process_line(line))

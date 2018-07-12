@@ -96,7 +96,7 @@ def learn_joint_bpe_and_vocab(args):
         learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
-        bpe = apply_bpe.BPE(codes, separator=args.separator)
+        bpe = apply_bpe.BPE(codes, separator=args.separator.decode('utf-8'))
 
     # apply BPE to each training corpus and get vocabulary
     for train_file, vocab_file in zip(args.input, args.vocab):

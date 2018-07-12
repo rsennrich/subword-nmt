@@ -60,7 +60,7 @@ def segment_char_ngrams(args):
             args.output.write(word[i*args.n:i*args.n+args.n])
             i += 1
             if i*args.n < len(word):
-              args.output.write(args.separator)
+              args.output.write(args.separator.decode('utf-8'))
             args.output.write(' ')
         else:
           args.output.write(word + ' ')

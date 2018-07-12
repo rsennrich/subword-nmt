@@ -61,7 +61,7 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         else:
             vocabulary = None
 
-        bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
+        bpe = BPE(args.codes, args.merges, args.separator.decode('utf-8'), vocabulary, args.glossaries)
 
         for line in args.input:
             args.output.write(bpe.process_line(line))
