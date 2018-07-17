@@ -361,6 +361,12 @@ if __name__ == '__main__':
     else:
         vocabulary = None
 
+    if sys.version_info < (3, 0):
+        args.separator = args.separator.decode('UTF-8')
+        if args.glossaries:
+            args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
+
+
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
