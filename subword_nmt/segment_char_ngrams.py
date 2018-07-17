@@ -60,7 +60,7 @@ def segment_char_ngrams(args):
             args.output.write(word[i*args.n:i*args.n+args.n])
             i += 1
             if i*args.n < len(word):
-              args.output.write(args.separator.decode('utf-8'))
+              args.output.write(args.separator)
             args.output.write(' ')
         else:
           args.output.write(word + ' ')
@@ -81,6 +81,9 @@ if __name__ == '__main__':
 
     parser = create_parser()
     args = parser.parse_args()
+
+    if sys.version_info < (3, 0):
+        args.separator = args.separator.decode('UTF-8')
 
     # read/write files as UTF-8
     args.vocab = codecs.open(args.vocab.name, encoding='utf-8')
