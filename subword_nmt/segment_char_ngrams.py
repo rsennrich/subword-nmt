@@ -82,6 +82,9 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    if sys.version_info < (3, 0):
+        args.separator = args.separator.decode('UTF-8')
+
     # read/write files as UTF-8
     args.vocab = codecs.open(args.vocab.name, encoding='utf-8')
     if args.input.name != '<stdin>':

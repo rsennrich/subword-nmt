@@ -147,6 +147,9 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    if sys.version_info < (3, 0):
+        args.separator = args.separator.decode('UTF-8')
+
     assert(len(args.input) == len(args.vocab))
 
     learn_joint_bpe_and_vocab(args)

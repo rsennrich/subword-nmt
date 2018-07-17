@@ -38,6 +38,11 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
 
     args = parser.parse_args()
 
+    if sys.version_info < (3, 0):
+        args.separator = args.separator.decode('UTF-8')
+        if args.glossaries:
+            args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
+
     if args.command == 'learn-bpe':
         # read/write files as UTF-8
         if args.input.name != '<stdin>':
