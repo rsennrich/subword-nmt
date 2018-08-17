@@ -1,6 +1,13 @@
 CHANGELOG
 ---------
 
+v0.3.4:
+  - segment_tokens method to improve library usability (https://github.com/rsennrich/subword-nmt/pull/52)
+  - support regex glossaries (https://github.com/rsennrich/subword-nmt/pull/56)
+  - allow unicode separators (https://github.com/rsennrich/subword-nmt/pull/57)
+  - new option --total-symbols in learn-bpe (commit 61ad8)
+  - fix documentation (best practices) (https://github.com/rsennrich/subword-nmt/pull/60)
+
 v0.3:
  - library is now installable via pip
  - fix occasional problems with UTF-8 whitespace and new lines in learn_bpe and apply_bpe.
