@@ -62,8 +62,8 @@ are the two languages):
 Learn byte pair encoding on the concatenation of the training text, and get resulting vocabulary for each:
 
     cat {train_file}.L1 {train_file}.L2 | subword-nmt learn-bpe -s {num_operations} -o {codes_file}
-    subword-nmt apply-bpe -c {codes_file} < {train_file}.L1 && subword-nmt get-vocab --train_file {codes_file} --vocab_file {vocab_file}.L1
-    subword-nmt apply-bpe -c {codes_file} < {train_file}.L2 && subword-nmt get-vocab --train_file {codes_file} --vocab_file {vocab_file}.L2
+    subword-nmt apply-bpe -c {codes_file} < {train_file}.L1 > {tmp}.L1 && subword-nmt get-vocab -i {tmp}.L1 -o {vocab_file}.L1
+    subword-nmt apply-bpe -c {codes_file} < {train_file}.L2 > {tmp}.L2 && subword-nmt get-vocab -i {tmp}.L2 -o {vocab_file}.L2
 
 more conventiently, you can do the same with with this command:
 
