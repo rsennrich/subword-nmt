@@ -68,6 +68,9 @@ def create_parser(subparsers=None):
         '--min-frequency', type=int, default=2, metavar='FREQ',
         help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
     parser.add_argument(
+        '--total-symbols', '-t', action="store_true",
+        help="subtract number of characters from the symbols to be generated (so that '--symbols' becomes an estimate for the total number of symbols needed to encode text).")
+    parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
 
@@ -93,7 +96,7 @@ def learn_joint_bpe_and_vocab(args):
 
     # learn BPE on combined vocabulary
     with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
-        learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True)
+        learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True, total_symbols=args.total_symbols)
 
     with codecs.open(args.output.name, encoding='UTF-8') as codes:
         bpe = apply_bpe.BPE(codes, separator=args.separator)
