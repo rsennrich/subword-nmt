@@ -50,7 +50,8 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         if args.output.name != '<stdout>':
             args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-        learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input)
+        learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, 
+                  is_dict=args.dict_input, total_symbols=args.total_symbols)
     elif args.command == 'apply-bpe':
         # read/write files as UTF-8
         args.codes = codecs.open(args.codes.name, encoding='utf-8')
