@@ -38,11 +38,6 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
 
     args = parser.parse_args()
 
-    if sys.version_info < (3, 0):
-        args.separator = args.separator.decode('UTF-8')
-        if args.glossaries:
-            args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
-
     if args.command == 'learn-bpe':
         # read/write files as UTF-8
         if args.input.name != '<stdin>':
@@ -67,6 +62,11 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         else:
             vocabulary = None
 
+        if sys.version_info < (3, 0):
+            args.separator = args.separator.decode('UTF-8')
+            if args.glossaries:
+                args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
+
         bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
         for line in args.input:
@@ -80,6 +80,8 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         get_vocab(args.input, args.output)
     elif args.command == 'learn-joint-bpe-and-vocab':
         learn_joint_bpe_and_vocab(args)
+        if sys.version_info < (3, 0):
+            args.separator = args.separator.decode('UTF-8')
     else:
         raise Exception('Invalid command provided')
 

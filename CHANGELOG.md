@@ -1,6 +1,10 @@
 CHANGELOG
 ---------
 
+v0.3.5:
+  - fix to subword-bpe command under Python 2
+  - wider support of --total-symbols argument
+
 v0.3.4:
   - segment_tokens method to improve library usability (https://github.com/rsennrich/subword-nmt/pull/52)
   - support regex glossaries (https://github.com/rsennrich/subword-nmt/pull/56)
