@@ -86,15 +86,12 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         raise Exception('Invalid command provided')
 
 
-if __name__ == '__main__':
-    # python 2/3 compatibility
-    if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
-
-    main()
+# python 2/3 compatibility
+if sys.version_info < (3, 0):
+    sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
+    sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
+    sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+else:
+    sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+    sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+    sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
