@@ -1,6 +1,9 @@
 CHANGELOG
 ---------
 
+v0.3.6:
+  - fix to subword-bpe command encoding
+
 v0.3.5:
   - fix to subword-bpe command under Python 2
   - wider support of --total-symbols argument
