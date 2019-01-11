@@ -93,6 +93,30 @@ Rico Sennrich, Barry Haddow and Alexandra Birch (2016):
     Neural Machine Translation of Rare Words with Subword Units
     Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
 
+HOW IMPLEMENTATION DIFFERS FROM Sennrich et al. (2016)
+------------------------------------------------------
+
+This repository implements the subword segmentation as described in Sennrich et al. (2016),
+but since version 0.2, there is one core difference related to end-of-word tokens.
+
+In Sennrich et al. (2016), the end-of-word token `</w>` is initially represented as a separate token, which can be merged with other subwords over time:
+
+```
+u n d </w>
+f u n d </w>
+```
+
+Since 0.2, end-of-word tokens are initially concatenated with the word-final character:
+
+```
+u n d</w>
+f u n d</w>
+```
+
+The new representation ensures that when BPE codes are learned from the above examples and then applied to new text, it is clear that a subword unit `und` is unambiguously word-final, and `un` is unambiguously word-internal, preventing the production of up to two different subword units from each BPE merge operation.
+
+`apply_bpe.py` is backward-compatible and continues to accept old-style BPE files. New-style BPE files are identified by having the following first line: `#version: 0.2`
+
 ACKNOWLEDGMENTS
 ---------------
 This project has received funding from Samsung Electronics Polska sp. z o.o. - Samsung R&D Institute Poland, and from the European Union’s Horizon 2020 research and innovation programme under grant agreement 645452 (QT21).
