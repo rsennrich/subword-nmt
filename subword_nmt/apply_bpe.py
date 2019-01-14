@@ -182,10 +182,9 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
     if orig in cache:
         return cache[orig]
 
-    for glossary in glossaries:
-        if re.match('^'+glossary+'$', orig):
-            cache[orig] = (orig,)
-            return (orig,)
+    if re.match('^({})$'.format('|'.join(glossaries))):
+        cache[orig] = (orig,)
+        return (orig,)
 
     if version == (0, 1):
         word = tuple(orig) + ('</w>',)
