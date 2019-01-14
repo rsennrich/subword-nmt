@@ -319,9 +319,10 @@ def isolate_glossary(word, glossary):
     if re.match('^'+glossary+'$', word) or not re.search(glossary, word):
         return [word]
     else:
-        splits = re.split(glossary, word)
-        segments = [segment.strip('\r\n ') for (n_split, split) in enumerate(splits[:-1]) for segment in [split, re.findall(glossary, word)[n_split]] if segment != '']
-        return segments + [splits[-1].strip('\r\n ')] if splits[-1] != '' else segments
+        segments = re.split(r'({})'.format(glossary), word)
+        segments, ending = segments[:-1], segments[-1]
+        segments = list(filter(None, segments)) # Remove empty strings in regex group.
+        return segments + [ending.strip('\r\n ')] if ending != '' else segments
 
 if __name__ == '__main__':
 
