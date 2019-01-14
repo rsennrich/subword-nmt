@@ -182,7 +182,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
     if orig in cache:
         return cache[orig]
 
-    if re.match('^({})$'.format('|'.join(glossaries))):
+    if re.match('^({})$'.format('|'.join(glossaries)), orig):
         cache[orig] = (orig,)
         return (orig,)
 
