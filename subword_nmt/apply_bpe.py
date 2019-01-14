@@ -321,7 +321,7 @@ def isolate_glossary(word, glossary):
     else:
         segments = re.split(r'({})'.format(glossary), word)
         segments, ending = segments[:-1], segments[-1]
-        segments = filter(None, segments) # Remove empty strings in regex group.
+        segments = list(filter(None, segments)) # Remove empty strings in regex group.
         return segments + [ending.strip('\r\n ')] if ending != '' else segments
 
 if __name__ == '__main__':
