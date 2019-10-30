@@ -21,6 +21,7 @@ import io
 import argparse
 import re
 import warnings
+import random
 
 # hack for python2/3 compatibility
 from io import open
@@ -63,7 +64,7 @@ class BPE(object):
 
         self.cache = {}
 
-    def process_line(self, line):
+    def process_line(self, line, dropout=0):
         """segment line, dealing with leading and trailing whitespace"""
 
         out = ""
@@ -72,7 +73,7 @@ class BPE(object):
         if leading_whitespace:
             out += line[:leading_whitespace]
 
-        out += self.segment(line)
+        out += self.segment(line, dropout)
 
         trailing_whitespace = len(line)-len(line.rstrip('\r\n '))
         if trailing_whitespace and trailing_whitespace != len(line):
@@ -80,12 +81,12 @@ class BPE(object):
 
         return out
 
-    def segment(self, sentence):
+    def segment(self, sentence, dropout=0):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
-        segments = self.segment_tokens(sentence.strip('\r\n ').split(' '))
+        segments = self.segment_tokens(sentence.strip('\r\n ').split(' '), dropout)
         return ' '.join(segments)
 
-    def segment_tokens(self, tokens):
+    def segment_tokens(self, tokens, dropout=0):
         """segment a sequence of tokens with BPE encoding"""
         output = []
         for word in tokens:
@@ -100,7 +101,8 @@ class BPE(object):
                                           self.separator,
                                           self.version,
                                           self.cache,
-                                          self.glossaries)]
+                                          self.glossaries,
+                                          dropout)]
 
             for item in new_word[:-1]:
                 output.append(item + self.separator)
@@ -155,6 +157,10 @@ def create_parser(subparsers=None):
         metavar="INT",
         help="Vocabulary threshold. If vocabulary is provided, any word with frequency < threshold will be treated as OOV")
     parser.add_argument(
+        '--dropout', type=float, default=0,
+        metavar="P",
+        help="Dropout BPE merge operations with probability P (Provilkov et al., 2019). Use this on training data only.")
+    parser.add_argument(
         '--glossaries', type=str, nargs='+', default=None,
         metavar="STR",
         help="Glossaries. Words matching any of the words/regex provided in glossaries will not be affected "+
@@ -163,7 +169,7 @@ def create_parser(subparsers=None):
 
     return parser
 
-def get_pairs(word):
+def get_pairs(word, dropout=0):
     """Return set of symbol pairs in a word.
 
     word is represented as tuple of symbols (symbols being variable-length strings)
@@ -171,15 +177,16 @@ def get_pairs(word):
     pairs = set()
     prev_char = word[0]
     for char in word[1:]:
-        pairs.add((prev_char, char))
+        if not dropout or random.random() > dropout:
+            pairs.add((prev_char, char))
         prev_char = char
     return pairs
 
-def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries=None):
+def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries=None, dropout=0):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
-    if orig in cache:
+    if orig in cache and not dropout:
         return cache[orig]
 
     if re.match('^({})$'.format('|'.join(glossaries)), orig):
@@ -193,12 +200,12 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
     else:
         raise NotImplementedError
 
-    pairs = get_pairs(word)
+    pairs = get_pairs(word, dropout)
 
     if not pairs:
         return orig
 
-    while True:
+    while pairs:
         bigram = min(pairs, key = lambda pair: bpe_codes.get(pair, float('inf')))
         if bigram not in bpe_codes:
             break
@@ -225,7 +232,7 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
         if len(word) == 1:
             break
         else:
-            pairs = get_pairs(word)
+            pairs = get_pairs(word, dropout)
 
     # don't print end-of-word symbols
     if word[-1] == '</w>':
@@ -370,4 +377,4 @@ if __name__ == '__main__':
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
     for line in args.input:
-        args.output.write(bpe.process_line(line))
+        args.output.write(bpe.process_line(line, args.dropout))
