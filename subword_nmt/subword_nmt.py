@@ -70,7 +70,7 @@ learn-joint-bpe-and-vocab: executes recommended workflow for joint BPE.""")
         bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
         for line in args.input:
-            args.output.write(bpe.process_line(line))
+            args.output.write(bpe.process_line(line, args.dropout))
 
     elif args.command == 'get-vocab':
         if args.input.name != '<stdin>':
