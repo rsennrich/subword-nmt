@@ -23,6 +23,7 @@ import re
 import warnings
 import random
 
+
 # hack for python2/3 compatibility
 from io import open
 argparse.open = open
@@ -61,6 +62,8 @@ class BPE(object):
         self.vocab = vocab
 
         self.glossaries = glossaries if glossaries else []
+
+        self.glossaries_regex = re.compile('^({})$'.format('|'.join(glossaries))) if glossaries else None
 
         self.cache = {}
 
@@ -101,7 +104,7 @@ class BPE(object):
                                           self.separator,
                                           self.version,
                                           self.cache,
-                                          self.glossaries,
+                                          self.glossaries_regex,
                                           dropout)]
 
             for item in new_word[:-1]:
@@ -169,77 +172,61 @@ def create_parser(subparsers=None):
 
     return parser
 
-def get_pairs(word, dropout=0):
-    """Return set of symbol pairs in a word.
-
-    word is represented as tuple of symbols (symbols being variable-length strings)
-    """
-    pairs = set()
-    prev_char = word[0]
-    for char in word[1:]:
-        if not dropout or random.random() > dropout:
-            pairs.add((prev_char, char))
-        prev_char = char
-    return pairs
-
-def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries=None, dropout=0):
+def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries_regex=None, dropout=0):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
-    if orig in cache and not dropout:
+    if not dropout and orig in cache:
         return cache[orig]
 
-    if re.match('^({})$'.format('|'.join(glossaries)), orig):
+    if glossaries_regex and glossaries_regex.match(orig):
         cache[orig] = (orig,)
         return (orig,)
 
+    if len(orig) == 1:
+        return orig
+
     if version == (0, 1):
-        word = tuple(orig) + ('</w>',)
+        word = list(orig) + ['</w>']
     elif version == (0, 2): # more consistent handling of word-final segments
-        word = tuple(orig[:-1]) + ( orig[-1] + '</w>',)
+        word = list(orig[:-1]) + [orig[-1] + '</w>']
     else:
         raise NotImplementedError
 
-    pairs = get_pairs(word, dropout)
+    while len(word) > 1:
 
-    if not pairs:
-        return orig
+        # get list of symbol pairs; optionally apply dropout
+        pairs = [(bpe_codes[pair],i,pair) for (i,pair) in enumerate(zip(word, word[1:])) if (not dropout or random.random() > dropout) and pair in bpe_codes]
 
-    while pairs:
-        bigram = min(pairs, key = lambda pair: bpe_codes.get(pair, float('inf')))
-        if bigram not in bpe_codes:
+        if not pairs:
             break
-        first, second = bigram
-        new_word = []
+
+        #get first merge operation in list of BPE codes
+        bigram = min(pairs)[2]
+
+        # find start position of all pairs that we want to merge
+        positions = [i for (rank,i,pair) in pairs if pair == bigram]
+
         i = 0
-        while i < len(word):
-            try:
-                j = word.index(first, i)
-                new_word.extend(word[i:j])
-                i = j
-            except:
-                new_word.extend(word[i:])
-                break
-
-            if word[i] == first and i < len(word)-1 and word[i+1] == second:
-                new_word.append(first+second)
-                i += 2
-            else:
-                new_word.append(word[i])
-                i += 1
-        new_word = tuple(new_word)
+        new_word = []
+        bigram = ''.join(bigram)
+        for j in positions:
+            # merges are invalid if they start before current position. This can happen if there are overlapping pairs: (x x x -> xx x)
+            if j < i:
+                continue
+            new_word.extend(word[i:j]) # all symbols before merged pair
+            new_word.append(bigram) # merged pair
+            i = j+2 # continue after merged pair
+        new_word.extend(word[i:]) # add all symbols until end of word
         word = new_word
-        if len(word) == 1:
-            break
-        else:
-            pairs = get_pairs(word, dropout)
 
     # don't print end-of-word symbols
     if word[-1] == '</w>':
         word = word[:-1]
     elif word[-1].endswith('</w>'):
-        word = word[:-1] + (word[-1].replace('</w>',''),)
+        word[-1] = word[-1][:-4]
 
+    word = tuple(word)
     if vocab:
         word = check_vocab_and_split(word, bpe_codes_reverse, vocab, separator)
 

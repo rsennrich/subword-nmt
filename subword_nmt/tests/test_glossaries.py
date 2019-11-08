@@ -104,7 +104,7 @@ class TestRegexIsolateGlossaries(unittest.TestCase):
         self._run_test_case(test_case) 
 
 def encode_mock(segment, x2, x3, x4, x5, x6, x7, glosses, dropout):
-    if segment in glosses:
+    if glosses.match(segment):
         return (segment,)
     else:
         l = len(segment)
