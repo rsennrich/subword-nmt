@@ -1,6 +1,10 @@
 CHANGELOG
 ---------
 
+v0.3.7:
+  - BPE dropout (Provilkov et al., 2019)
+  - more efficient glossaries (https://github.com/rsennrich/subword-nmt/pull/69)
+
 v0.3.6:
   - fix to subword-bpe command encoding
 
