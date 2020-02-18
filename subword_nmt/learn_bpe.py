@@ -17,11 +17,13 @@ import os
 import sys
 import inspect
 import codecs
-import re
 import copy
 import argparse
 import warnings
+import json
 from collections import defaultdict, Counter
+
+import regex as re
 
 # hack for python2/3 compatibility
 from io import open
@@ -44,9 +46,13 @@ def create_parser(subparsers=None):
         help="Input text (default: standard input).")
 
     parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
+        '--vocab_output', '-o', type=argparse.FileType('w'), default="vocab.bpe",
         metavar='PATH',
-        help="Output file for BPE codes (default: standard output)")
+        help="Output file for vocab.bpe file")
+    parser.add_argument(
+        '--encoder_output', '-e', type=argparse.FileType('w'), default="encoder.json",
+        metavar='PATH',
+        help="Output file for encoder.json file")
     parser.add_argument(
         '--symbols', '-s', type=int, default=10000,
         help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
@@ -64,7 +70,32 @@ def create_parser(subparsers=None):
 
     return parser
 
-def get_vocabulary(fobj, is_dict=False):
+
+def bytes_to_unicode():
+    """
+    Copied and pasted from https://github.com/openai/gpt-2/blob/master/src/encoder.py
+
+    Returns list of utf-8 byte and a corresponding list of unicode strings.
+    The reversible bpe codes work on unicode strings.
+    This means you need a large # of unicode characters in your vocab if you want to avoid UNKs.
+    When you're at something like a 10B token dataset you end up needing around 5K for decent coverage.
+    This is a signficant percentage of your normal, say, 32K bpe vocab.
+    To avoid that, we want lookup tables between utf-8 bytes and unicode strings.
+    And avoids mapping to whitespace/control characters the bpe code barfs on.
+    """
+    bs = list(range(ord("!"), ord("~")+1))+list(range(ord("¡"), ord("¬")+1))+list(range(ord("®"), ord("ÿ")+1))
+    cs = bs[:]
+    n = 0
+    for b in range(2**8):
+        if b not in bs:
+            bs.append(b)
+            cs.append(2**8+n)
+            n += 1
+    cs = [chr(n) for n in cs]
+    return dict(zip(bs, cs))
+
+
+def get_vocabulary(fobj, byte_encoder, is_dict=False):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
@@ -77,7 +108,10 @@ def get_vocabulary(fobj, is_dict=False):
                 sys.exit(1)
             vocab[word] += int(count)
         else:
-            for word in line.strip('\r\n ').split(' '):
+            # RE copied and pasted from https://github.com/openai/gpt-2/blob/master/src/encoder.py
+            tokenizer_re = re.compile(r"""'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+""")
+            for word in re.findall(tokenizer_re, line):
+                word = ''.join(byte_encoder[b] for b in word.encode('utf-8'))
                 if word:
                     vocab[word] += 1
     return vocab
@@ -200,16 +234,18 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False):
+def learn_bpe(infile, vocab_outfile, encoder_outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False,
+              total_symbols=False):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
     # version 0.2 changes the handling of the end-of-word token ('</w>');
     # version numbering allows bckward compatibility
-    outfile.write('#version: 0.2\n')
+    vocab_outfile.write('#version: 0.2\n')
 
-    vocab = get_vocabulary(infile, is_dict)
-    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
+    byte_encoder = bytes_to_unicode()
+    vocab = get_vocabulary(infile, byte_encoder, is_dict)
+    vocab = dict([(tuple(x), y) for (x, y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
     stats, indices = get_pair_statistics(sorted_vocab)
@@ -227,6 +263,7 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
         sys.stderr.write('Reducing number of merge operations by {0}\n'.format(len(uniq_char_internal) + len(uniq_char_final)))
         num_symbols -= len(uniq_char_internal) + len(uniq_char_final)
 
+    symbols = list(byte_encoder.values())
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
     for i in range(num_symbols):
@@ -248,12 +285,15 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
 
         if verbose:
             sys.stderr.write('pair {0}: {1} {2} -> {1}{2} (frequency {3})\n'.format(i, most_frequent[0], most_frequent[1], stats[most_frequent]))
-        outfile.write('{0} {1}\n'.format(*most_frequent))
+        symbols.append("".join(most_frequent))
+        vocab_outfile.write('{0} {1}\n'.format(*most_frequent))
         changes = replace_pair(most_frequent, sorted_vocab, indices)
         update_pair_statistics(most_frequent, changes, stats, indices)
         stats[most_frequent] = 0
         if not i % 100:
             prune_stats(stats, big_stats, threshold)
+
+    json.dump(dict(zip(symbols, range(len(symbols)))), encoder_outfile)
 
 
 if __name__ == '__main__':
@@ -283,7 +323,10 @@ if __name__ == '__main__':
     # read/write files as UTF-8
     if args.input.name != '<stdin>':
         args.input = codecs.open(args.input.name, encoding='utf-8')
-    if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+    if args.vocab_output.name != '<stdout>':
+        args.vocab_output = codecs.open(args.vocab_output.name, 'w', encoding='utf-8')
+    if args.encoder_output.name != '<stdout>':
+        args.encoder_output = codecs.open(args.encoder_output.name, 'w', encoding='utf-8')
 
-    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, total_symbols=args.total_symbols)
+    learn_bpe(args.input, args.vocab_output, args.encoder_output, args.symbols, args.min_frequency, args.verbose,
+              is_dict=args.dict_input, total_symbols=args.total_symbols)
