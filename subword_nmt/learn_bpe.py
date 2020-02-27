@@ -293,6 +293,7 @@ def learn_bpe(infile, vocab_outfile, encoder_outfile, num_symbols, min_frequency
         if not i % 100:
             prune_stats(stats, big_stats, threshold)
 
+    symbols.extend(["<|endoftext|>", "<|endofcomment|>"])
     json.dump(dict(zip(symbols, range(len(symbols)))), encoder_outfile)
 
 
