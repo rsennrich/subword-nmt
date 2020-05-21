@@ -91,7 +91,8 @@ On top of the basic BPE implementation, this repository supports:
 
 - BPE dropout (Provilkov, Emelianenko and Voita, 2019): https://arxiv.org/abs/1910.13267
   use the argument `--dropout 0.1` for `subword-nmt apply-bpe` to randomly drop out possible merges.
-  Doing this on the training corpus can improve quality of the final system; at test time, use BPE without dropout
+  Doing this on the training corpus can improve quality of the final system; at test time, use BPE without dropout.
+  In order to obtain reproducible results, argument `--seed` can be used to set the random seed.
 
 - support for glossaries:
   use the argument `--glossaries` for `subword-nmt apply-bpe` to provide a list of words and/or regular expressions
