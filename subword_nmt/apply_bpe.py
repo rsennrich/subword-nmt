@@ -169,6 +169,10 @@ def create_parser(subparsers=None):
         help="Glossaries. Words matching any of the words/regex provided in glossaries will not be affected "+
              "by the BPE (i.e. they will neither be broken into subwords, nor concatenated with other subwords. "+
              "Can be provided as a list of words/regex after the --glossaries argument. Enclose each regex in quotes.")
+    parser.add_argument(
+        '--seed', type=int, default=None,
+        metavar="S",
+        help="Random seed for the random number generators (e.g. for BPE dropout with --dropout).")
 
     return parser
 
@@ -360,6 +364,8 @@ if __name__ == '__main__':
         if args.glossaries:
             args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
 
+    if args.seed is not None:
+        random.seed(args.seed)
 
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
