@@ -136,8 +136,9 @@ def _get_vocabulary(infile, outfile, begin, end):
         f.seek(begin)
         line = f.readline()
         while line:
-            assert 0 <= f.tell() < 1e20, "Bad new line separator, e.g. '\\r'"
-            if end > 0 and f.tell() > end:
+            pos = f.tell()
+            assert 0 <= pos < 1e20, "Bad new line separator, e.g. '\\r'"
+            if end > 0 and pos > end:
                 break
             for word in line.strip('\r\n ').split(' '):
                 if word:
