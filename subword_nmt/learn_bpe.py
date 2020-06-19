@@ -21,6 +21,8 @@ import re
 import copy
 import argparse
 import warnings
+import tempfile
+from multiprocessing import Pool, cpu_count
 from collections import defaultdict, Counter
 
 # hack for python2/3 compatibility
@@ -49,38 +51,101 @@ def create_parser(subparsers=None):
         help="Output file for BPE codes (default: standard output)")
     parser.add_argument(
         '--symbols', '-s', type=int, default=10000,
-        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
+        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s)")
     parser.add_argument(
         '--min-frequency', type=int, default=2, metavar='FREQ',
-        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
+        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s)')
     parser.add_argument('--dict-input', action="store_true",
         help="If set, input file is interpreted as a dictionary where each line contains a word-count pair")
     parser.add_argument(
         '--total-symbols', '-t', action="store_true",
         help="subtract number of characters from the symbols to be generated (so that '--symbols' becomes an estimate for the total number of symbols needed to encode text).")
     parser.add_argument(
+        '--num-workers', type=int, default=1,
+        help="Number of processors to process texts, only supported in Python3. If -1, set `multiprocessing.cpu_count()`. (default: %(default)s)")
+    parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
 
     return parser
 
-def get_vocabulary(fobj, is_dict=False):
+def get_vocabulary(fobj, is_dict=False, num_workers=1):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
-    for i, line in enumerate(fobj):
-        if is_dict:
+    if is_dict:
+        for i, line in enumerate(fobj):
             try:
                 word, count = line.strip('\r\n ').split(' ')
             except:
                 print('Failed reading vocabulary file at line {0}: {1}'.format(i, line))
                 sys.exit(1)
             vocab[word] += int(count)
-        else:
+    elif num_workers == 1 or fobj.name == '<stdin>':
+        if num_workers > 1:
+            warnings.warn("In parallel mode, the input cannot be STDIN. Using 1 processor instead.")
+        for i, line in enumerate(fobj):
             for word in line.strip('\r\n ').split(' '):
                 if word:
                     vocab[word] += 1
+    elif num_workers > 1:
+
+        if sys.version_info < (3, 0):
+            print("Parallel mode is only supported in Python3.")
+            sys.exit(1)
+
+        with open(fobj.name, encoding="utf8") as f:
+            size = os.fstat(f.fileno()).st_size
+            chunk_size = int(size / num_workers)
+            offsets = [0 for _ in range(num_workers + 1)]
+            for i in range(1, num_workers):
+                f.seek(chunk_size * i)
+                pos = f.tell()
+                while True:
+                    try:
+                        line = f.readline()
+                        break
+                    except UnicodeDecodeError:
+                        pos -= 1
+                        f.seek(pos)
+                offsets[i] = f.tell()
+                assert 0 <= offsets[i] < 1e20, "Bad new line separator, e.g. '\\r'"
+
+        vocab_files = []
+        pool = Pool(processes=num_workers)
+        for i in range(num_workers):
+            tmp = tempfile.NamedTemporaryFile(delete=False)
+            tmp.close()
+            vocab_files.append(tmp)
+            pool.apply_async(_get_vocabulary, (fobj.name, tmp.name, offsets[i], offsets[i + 1]))
+        pool.close()
+        pool.join()
+        import pickle
+        for i in range(num_workers):
+            with open(vocab_files[i].name, 'rb') as f:
+                vocab += pickle.load(f)
+            os.remove(vocab_files[i].name)
+    else:
+        raise ValueError('`num_workers` is expected to be a positive number, but got {}.'.format(num_workers))
     return vocab
+
+def _get_vocabulary(infile, outfile, begin, end):
+    import pickle
+    vocab = Counter()
+    with open(infile, encoding="utf8") as f:
+        f.seek(begin)
+        line = f.readline()
+        while line:
+            pos = f.tell()
+            assert 0 <= pos < 1e20, "Bad new line separator, e.g. '\\r'"
+            if end > 0 and pos > end:
+                break
+            for word in line.strip('\r\n ').split(' '):
+                if word:
+                    vocab[word] += 1
+            line = f.readline()
+    with open(outfile, 'wb') as f:
+        pickle.dump(vocab, f)
 
 def update_pair_statistics(pair, changed, stats, indices):
     """Minimally update the indices and frequency of symbol pairs
@@ -200,7 +265,7 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False):
+def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False, num_workers=1):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
@@ -208,7 +273,7 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
     # version numbering allows bckward compatibility
     outfile.write('#version: 0.2\n')
 
-    vocab = get_vocabulary(infile, is_dict)
+    vocab = get_vocabulary(infile, is_dict, num_workers)
     vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
@@ -280,10 +345,17 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    if args.num_workers <= 0:
+        args.num_workers = cpu_count()
+
+    if sys.version_info < (3, 0) and args.num_workers > 1:
+        args.num_workers = 1
+        warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
+
     # read/write files as UTF-8
     if args.input.name != '<stdin>':
         args.input = codecs.open(args.input.name, encoding='utf-8')
     if args.output.name != '<stdout>':
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, total_symbols=args.total_symbols)
+    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, total_symbols=args.total_symbols, num_workers=args.num_workers)

@@ -22,7 +22,8 @@ import argparse
 import re
 import warnings
 import random
-
+import tempfile
+from multiprocessing import Pool, cpu_count
 
 # hack for python2/3 compatibility
 from io import open
@@ -66,6 +67,48 @@ class BPE(object):
         self.glossaries_regex = re.compile('^({})$'.format('|'.join(glossaries))) if glossaries else None
 
         self.cache = {}
+
+    def process_lines(self, filename, outfile, dropout=0, num_workers=1):
+
+        if sys.version_info < (3, 0):
+            print("Parallel mode is only supported in Python3.")
+            sys.exit(1)
+
+        if num_workers == 1:
+            _process_lines(self, filename, outfile, dropout, 0, 0)
+        elif num_workers > 1:
+            with open(filename, encoding="utf-8") as f:
+                size = os.fstat(f.fileno()).st_size
+                chunk_size = int(size / num_workers)
+                offsets = [0 for _ in range(num_workers + 1)]
+                for i in range(1, num_workers):
+                    f.seek(chunk_size * i)
+                    pos = f.tell()
+                    while True:
+                        try:
+                            line = f.readline()
+                            break
+                        except UnicodeDecodeError:
+                            pos -= 1
+                            f.seek(pos)
+                    offsets[i] = f.tell()
+                    assert 0 <= offsets[i] < 1e20, "Bad new line separator, e.g. '\\r'"
+            res_files = []
+            pool = Pool(processes=num_workers)
+            for i in range(num_workers):
+                tmp = tempfile.NamedTemporaryFile(delete=False)
+                tmp.close()
+                res_files.append(tmp)
+                pool.apply_async(_process_lines, (self, filename, tmp.name, dropout, offsets[i], offsets[i + 1]))
+            pool.close()
+            pool.join()
+            for i in range(num_workers):
+                with open(res_files[i].name, encoding="utf-8") as fi:
+                    for line in fi:
+                        outfile.write(line)
+                os.remove(res_files[i].name)
+        else:
+            raise ValueError('`num_workers` is expected to be a positive number, but got {}.'.format(num_workers))
 
     def process_line(self, line, dropout=0):
         """segment line, dealing with leading and trailing whitespace"""
@@ -120,6 +163,24 @@ class BPE(object):
                                  for out_segments in isolate_glossary(segment, gloss)]
         return word_segments
 
+def _process_lines(bpe, filename, outfile, dropout, begin, end):
+    if isinstance(outfile, str):
+        fo = open(outfile, "w", encoding="utf-8")
+    else:
+        fo = outfile
+    with open(filename, encoding="utf-8") as f:
+        f.seek(begin)
+        line = f.readline()
+        while line:
+            pos = f.tell()
+            assert 0 <= pos < 1e20, "Bad new line separator, e.g. '\\r'"
+            if end > 0 and pos > end:
+                break
+            fo.write(bpe.process_line(line, dropout))
+            line = f.readline()
+    if isinstance(outfile, str):
+        fo.close()
+
 def create_parser(subparsers=None):
 
     if subparsers:
@@ -173,6 +234,9 @@ def create_parser(subparsers=None):
         '--seed', type=int, default=None,
         metavar="S",
         help="Random seed for the random number generators (e.g. for BPE dropout with --dropout).")
+    parser.add_argument(
+        '--num-workers', type=int, default=1,
+        help="Number of processors to process texts, only supported in Python3. If -1, set `multiprocessing.cpu_count()`. (default: %(default)s)")
 
     return parser
 
@@ -345,6 +409,9 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    if args.num_workers <= 0:
+        args.num_workers = cpu_count()
+
     # read/write files as UTF-8
     args.codes = codecs.open(args.codes.name, encoding='utf-8')
     if args.input.name != '<stdin>':
@@ -363,11 +430,19 @@ if __name__ == '__main__':
         args.separator = args.separator.decode('UTF-8')
         if args.glossaries:
             args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
+        if args.num_workers > 1:
+            args.num_workers = 1
+            warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
 
     if args.seed is not None:
         random.seed(args.seed)
 
     bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
 
-    for line in args.input:
-        args.output.write(bpe.process_line(line, args.dropout))
+    if args.input.name == '<stdin>' or args.num_workers == 1:
+        if args.num_workers > 1:
+            warnings.warn("In parallel mode, the input cannot be STDIN. Using 1 processor instead.")
+        for line in args.input:
+            args.output.write(bpe.process_line(line, args.dropout))
+    else:
+        bpe.process_lines(args.input.name, args.output, args.dropout, args.num_workers)

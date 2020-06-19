@@ -22,6 +22,7 @@ import argparse
 import tempfile
 import warnings
 from collections import Counter
+from multiprocessing import cpu_count
 
 #hack to get imports working if running this as a script, or within a package
 if __name__ == '__main__':
@@ -56,20 +57,23 @@ def create_parser(subparsers=None):
         help="Output file for BPE codes.")
     parser.add_argument(
         '--symbols', '-s', type=int, default=10000,
-        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s))")
+        help="Create this many new symbols (each representing a character n-gram) (default: %(default)s)")
     parser.add_argument(
         '--separator', type=str, default='@@', metavar='STR',
-        help="Separator between non-final subword units (default: '%(default)s'))")
+        help="Separator between non-final subword units (default: '%(default)s')")
     parser.add_argument(
         '--write-vocabulary', type=argparse.FileType('w'), required=True, nargs = '+', default=None,
         metavar='PATH', dest='vocab',
         help='Write to these vocabulary files after applying BPE. One per input text. Used for filtering in apply_bpe.py')
     parser.add_argument(
         '--min-frequency', type=int, default=2, metavar='FREQ',
-        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s))')
+        help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s)')
     parser.add_argument(
         '--total-symbols', '-t', action="store_true",
         help="subtract number of characters from the symbols to be generated (so that '--symbols' becomes an estimate for the total number of symbols needed to encode text).")
+    parser.add_argument(
+        '--num-workers', type=int, default=1,
+        help="Number of processors to process texts, only supported in Python3. If -1, set `multiprocessing.cpu_count()`. (default: %(default)s)")
     parser.add_argument(
         '--verbose', '-v', action="store_true",
         help="verbose mode.")
@@ -89,7 +93,7 @@ def learn_joint_bpe_and_vocab(args):
     # get combined vocabulary of all input texts
     full_vocab = Counter()
     for f in args.input:
-        full_vocab += learn_bpe.get_vocabulary(f)
+        full_vocab += learn_bpe.get_vocabulary(f, num_workers=args.num_workers)
         f.seek(0)
 
     vocab_list = ['{0} {1}'.format(key, freq) for (key, freq) in full_vocab.items()]
@@ -110,14 +114,12 @@ def learn_joint_bpe_and_vocab(args):
         tmpout = codecs.open(tmp.name, 'w', encoding='UTF-8')
 
         train_file.seek(0)
-        for line in train_file:
-            tmpout.write(bpe.segment(line).strip())
-            tmpout.write('\n')
+        bpe.process_lines(train_file.name, tmpout, num_workers=args.num_workers)
 
         tmpout.close()
         tmpin = codecs.open(tmp.name, encoding='UTF-8')
 
-        vocab = learn_bpe.get_vocabulary(tmpin)
+        vocab = learn_bpe.get_vocabulary(tmpin, num_workers=args.num_workers)
         tmpin.close()
         os.remove(tmp.name)
 
@@ -150,8 +152,14 @@ if __name__ == '__main__':
     parser = create_parser()
     args = parser.parse_args()
 
+    if args.num_workers <= 0:
+        args.num_workers = cpu_count()
+
     if sys.version_info < (3, 0):
         args.separator = args.separator.decode('UTF-8')
+        if args.num_workers > 1:
+            args.num_workers = 1
+            warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
 
     assert(len(args.input) == len(args.vocab))
 
