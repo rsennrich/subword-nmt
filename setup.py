@@ -11,7 +11,7 @@ def test_suite():
 
 setup(
     name='subword_nmt',
-    version='0.3.7',
+    version='0.3.8',
     description='Unsupervised Word Segmentation for Neural Machine Translation and Text Generation',
     long_description=(codecs.open("README.md", encoding='utf-8').read() +
                       "\n\n" + codecs.open("CHANGELOG.md", encoding='utf-8').read()),
@@ -28,6 +28,8 @@ setup(
     'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
     ],
+    install_requires=['mock',
+                      'tqdm'],
     packages=find_packages(),
     entry_points={
         'console_scripts': ['subword-nmt=subword_nmt.subword_nmt:main'],

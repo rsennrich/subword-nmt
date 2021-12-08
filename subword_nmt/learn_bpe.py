@@ -25,6 +25,12 @@ import tempfile
 from multiprocessing import Pool, cpu_count
 from collections import defaultdict, Counter
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterator, *args, **kwargs):
+        return iterator
+
 # hack for python2/3 compatibility
 from io import open
 argparse.open = open
@@ -294,7 +300,7 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
 
     # threshold is inspired by Zipfian assumption, but should only affect speed
     threshold = max(stats.values()) / 10
-    for i in range(num_symbols):
+    for i in tqdm(range(num_symbols)):
         if stats:
             most_frequent = max(stats, key=lambda x: (stats[x], x))
 

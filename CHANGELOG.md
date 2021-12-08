@@ -1,6 +1,12 @@
 CHANGELOG
 ---------
 
+v0.3.8:
+  - multiprocessing support (get_vocab and apply_bpe)
+  - progress bar for learn_bpe
+  - seed parameter for deterministic BPE dropout
+  - ignore some unicode line separators which would crash subword-nmt
+
 v0.3.7:
   - BPE dropout (Provilkov et al., 2019)
   - more efficient glossaries (https://github.com/rsennrich/subword-nmt/pull/69)
