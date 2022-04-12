@@ -97,8 +97,16 @@ On top of the basic BPE implementation, this repository supports:
   **Note:** In the original paper, the authors used BPE-Dropout on each new batch separately. You can copy the training corpus several times to get similar behavior to obtain multiple segmentations for the same sentence.
 
 - support for glossaries:
-  use the argument `--glossaries` for `subword-nmt apply-bpe` to provide a list of words and/or regular expressions
+  use the argument `--glossaries` for `subword-nmt apply-bpe` to provide a list of subwords and/or regular expressions
   that should always be passed to the output without subword segmentation
+
+```
+echo "I am flying to <country>Switzerland</country> at noon ." | subword-nmt apply-bpe --codes subword_nmt/tests/data/bpe.ref
+I am fl@@ y@@ ing to <@@ coun@@ tr@@ y@@ >@@ S@@ w@@ it@@ z@@ er@@ l@@ and@@ <@@ /@@ coun@@ tr@@ y@@ > at no@@ on .
+
+echo "I am flying to <country>Switzerland</country> at noon ." | subword-nmt apply-bpe --codes subword_nmt/tests/data/bpe.ref --glossaries "<country>\w*</country>" "fly"
+I am fly@@ ing to <country>Switzerland</country> at no@@ on .
+```
 
 PUBLICATIONS
 ------------
