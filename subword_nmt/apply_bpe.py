@@ -390,7 +390,6 @@ if __name__ == '__main__':
     currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     newdir = os.path.join(currentdir, 'subword_nmt')
     if os.path.isdir(newdir):
-        warnings.simplefilter('default')
         warnings.warn(
             "this script's location has moved to {0}. This symbolic link will be removed in a future version. Please point to the new location, or install the package and use the command 'subword-nmt'".format(newdir),
             DeprecationWarning
@@ -413,6 +412,7 @@ if __name__ == '__main__':
         args.num_workers = cpu_count()
 
     # read/write files as UTF-8
+
     args.codes = codecs.open(args.codes.name, encoding='utf-8')
     if args.input.name != '<stdin>':
         args.input = codecs.open(args.input.name, encoding='utf-8')
@@ -446,3 +446,12 @@ if __name__ == '__main__':
             args.output.write(bpe.process_line(line, args.dropout))
     else:
         bpe.process_lines(args.input.name, args.output, args.dropout, args.num_workers)
+
+    # close files
+    args.codes.close()
+    if args.input.name != '<stdin>':
+        args.input.close()
+    if args.output.name != '<stdout>':
+        args.output.close()
+    if args.vocabulary:
+        args.vocabulary.close()

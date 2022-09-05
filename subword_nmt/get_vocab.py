@@ -54,7 +54,6 @@ if __name__ == "__main__":
     currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
     newdir = os.path.join(currentdir, 'subword_nmt')
     if os.path.isdir(newdir):
-        warnings.simplefilter('default')
         warnings.warn(
             "this script's location has moved to {0}. This symbolic link will be removed in a future version. Please point to the new location, or install the package and use the command 'subword-nmt'".format(newdir),
             DeprecationWarning
@@ -80,3 +79,9 @@ if __name__ == "__main__":
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
     get_vocab(args.input, args.output)
+
+    # close files
+    if args.input.name != '<stdin>':
+        args.input.close()
+    if args.output.name != '<stdout>':
+        args.output.close()
