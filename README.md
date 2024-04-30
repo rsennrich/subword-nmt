@@ -113,9 +113,46 @@ PUBLICATIONS
 
 The segmentation methods are described in:
 
-Rico Sennrich, Barry Haddow and Alexandra Birch (2016):
-    Neural Machine Translation of Rare Words with Subword Units
-    Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (ACL 2016). Berlin, Germany.
+```bibtex
+@inproceedings{sennrich-etal-2016-neural,
+    title = "Neural Machine Translation of Rare Words with Subword Units",
+    author = "Sennrich, Rico  and
+      Haddow, Barry  and
+      Birch, Alexandra",
+    booktitle = "Proceedings of the 54th Annual Meeting of the Association for Computational Linguistics (Volume 1: Long Papers)",
+    month = aug,
+    year = "2016",
+    address = "Berlin, Germany",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/P16-1162",
+    doi = "10.18653/v1/P16-1162",
+    pages = "1715--1725",
+}
+```
+
+The best practice advice is described in:
+
+```bibtex
+@inproceedings{sennrich-etal-2017-university,
+    title = "The University of {E}dinburgh{'}s Neural {MT} Systems for {WMT}17",
+    author = "Sennrich, Rico  and
+      Birch, Alexandra  and
+      Currey, Anna  and
+      Germann, Ulrich  and
+      Haddow, Barry  and
+      Heafield, Kenneth  and
+      Miceli Barone, Antonio Valerio  and
+      Williams, Philip",
+    booktitle = "Proceedings of the Second Conference on Machine Translation",
+    month = sep,
+    year = "2017",
+    address = "Copenhagen, Denmark",
+    publisher = "Association for Computational Linguistics",
+    url = "https://www.aclweb.org/anthology/W17-4739",
+    doi = "10.18653/v1/W17-4739",
+    pages = "389--399",
+}
+```
 
 HOW IMPLEMENTATION DIFFERS FROM Sennrich et al. (2016)
 ------------------------------------------------------
