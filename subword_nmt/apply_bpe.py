@@ -431,11 +431,13 @@ def isolate_glossary(word, glossary, is_bytes=False):
         if is_bytes:
             segments = re.split(rb'(' + glossary + rb')', word)
             segments, ending = segments[:-1], segments[-1:]
+            segments = list(filter(None, segments)) # Remove empty strings in regex group.
+            return segments + [ending[0].strip(strip_chars)] if ending != empty_string else segments
         else:
             segments = re.split(r'({})'.format(glossary), word)
             segments, ending = segments[:-1], segments[-1]
-        segments = list(filter(None, segments)) # Remove empty strings in regex group.
-        return segments + [ending[0].strip(strip_chars)] if ending != empty_string else segments
+            segments = list(filter(None, segments)) # Remove empty strings in regex group.
+            return segments + [ending.strip(strip_chars)] if ending != empty_string else segments
 
 # first line of BPE code file indicates if it is byte-level or UTF-8
 def get_byte_mode(code_file_name):
