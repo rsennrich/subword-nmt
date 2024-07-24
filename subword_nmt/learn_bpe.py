@@ -24,6 +24,7 @@ import warnings
 import tempfile
 from multiprocessing import Pool, cpu_count
 from collections import defaultdict, Counter
+from contextlib import contextmanager
 
 try:
     from tqdm import tqdm
@@ -98,11 +99,8 @@ def get_vocabulary(fobj, is_dict=False, is_bytes=False, num_workers=1):
                     vocab[word] += 1
     elif num_workers > 1:
 
-        if is_bytes:
-            print('byte-level BPE not yet ported to parallel mode')
-            sys.exit(1)
-
-        with open(fobj.name, encoding="utf8") as f:
+        mode = 'rb' if is_bytes else 'r'
+        with open_file(fobj.name, mode) as f:
             size = os.fstat(f.fileno()).st_size
             chunk_size = int(size / num_workers)
             offsets = [0 for _ in range(num_workers + 1)]
@@ -125,7 +123,7 @@ def get_vocabulary(fobj, is_dict=False, is_bytes=False, num_workers=1):
             tmp = tempfile.NamedTemporaryFile(delete=False)
             tmp.close()
             vocab_files.append(tmp)
-            pool.apply_async(_get_vocabulary, (fobj.name, tmp.name, offsets[i], offsets[i + 1]))
+            pool.apply_async(_get_vocabulary, (fobj.name, tmp.name, is_bytes, offsets[i], offsets[i + 1]))
         pool.close()
         pool.join()
         import pickle
@@ -137,10 +135,13 @@ def get_vocabulary(fobj, is_dict=False, is_bytes=False, num_workers=1):
         raise ValueError('`num_workers` is expected to be a positive number, but got {}.'.format(num_workers))
     return vocab
 
-def _get_vocabulary(infile, outfile, begin, end):
+def _get_vocabulary(infile, outfile, is_bytes, begin, end):
     import pickle
     vocab = Counter()
-    with open(infile, encoding="utf8") as f:
+    mode = 'rb' if is_bytes else 'r'
+    strip_chars = b'\r\n ' if is_bytes else '\r\n '
+    split_char = b' ' if is_bytes else ' '
+    with open_file(infile, mode) as f:
         f.seek(begin)
         line = f.readline()
         while line:
@@ -148,7 +149,7 @@ def _get_vocabulary(infile, outfile, begin, end):
             assert 0 <= pos < 1e20, "Bad new line separator, e.g. '\\r'"
             if end > 0 and pos > end:
                 break
-            for word in line.strip('\r\n ').split(' '):
+            for word in line.strip(strip_chars).split(split_char):
                 if word:
                     vocab[word] += 1
             line = f.readline()
@@ -281,6 +282,17 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] += freq
             else:
                 big_stats[item] = freq
+
+@contextmanager
+def open_file(filename, mode):
+    if mode in ('r', 'w'):
+        f = open(filename, mode, encoding="utf-8")
+    elif mode in ('rb', 'wb'):
+        f = open(filename, mode)
+    try:
+        yield f
+    finally:
+        f.close()
 
 
 def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, is_bytes=False, total_symbols=False, num_workers=1):
