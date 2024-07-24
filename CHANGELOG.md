@@ -1,5 +1,8 @@
 CHANGELOG
 ---------
+v0.3.9
+  - byte-level BPE support
+  - remove support for Python 2
 
 v0.3.8:
   - multiprocessing support (get_vocab and apply_bpe)

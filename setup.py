@@ -11,7 +11,7 @@ def test_suite():
 
 setup(
     name='subword_nmt',
-    version='0.3.8',
+    version='0.3.9',
     description='Unsupervised Word Segmentation for Neural Machine Translation and Text Generation',
     long_description=(codecs.open("README.md", encoding='utf-8').read() +
                       "\n\n" + codecs.open("CHANGELOG.md", encoding='utf-8').read()),
@@ -25,7 +25,6 @@ setup(
     'Topic :: Text Processing',
     'Topic :: Scientific/Engineering :: Artificial Intelligence',
     'License :: OSI Approved :: MIT License',
-    'Programming Language :: Python :: 2',
     'Programming Language :: Python :: 3',
     ],
     install_requires=['mock',

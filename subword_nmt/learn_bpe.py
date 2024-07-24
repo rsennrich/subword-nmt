@@ -31,10 +31,6 @@ except ImportError:
     def tqdm(iterator, *args, **kwargs):
         return iterator
 
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
-
 def create_parser(subparsers=None):
 
     if subparsers:
@@ -47,12 +43,11 @@ def create_parser(subparsers=None):
             description="learn BPE-based word segmentation")
 
     parser.add_argument(
-        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
+        '--input', '-i', type=argparse.FileType('rb'), default=sys.stdin,
         metavar='PATH',
         help="Input text (default: standard input).")
-
     parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
+        '--output', '-o', type=argparse.FileType('wb'), default=sys.stdout,
         metavar='PATH',
         help="Output file for BPE codes (default: standard output)")
     parser.add_argument(
@@ -61,6 +56,9 @@ def create_parser(subparsers=None):
     parser.add_argument(
         '--min-frequency', type=int, default=2, metavar='FREQ',
         help='Stop if no symbol pair has frequency >= FREQ (default: %(default)s)')
+    parser.add_argument(
+        '--byte', '-b', action="store_true",
+        help="byte-level BPE.")
     parser.add_argument('--dict-input', action="store_true",
         help="If set, input file is interpreted as a dictionary where each line contains a word-count pair")
     parser.add_argument(
@@ -75,14 +73,18 @@ def create_parser(subparsers=None):
 
     return parser
 
-def get_vocabulary(fobj, is_dict=False, num_workers=1):
+def get_vocabulary(fobj, is_dict=False, is_bytes=False, num_workers=1):
     """Read text and return dictionary that encodes vocabulary
     """
     vocab = Counter()
+
+    strip_chars = b'\r\n ' if is_bytes else '\r\n '
+    split_char = b' ' if is_bytes else ' '
+
     if is_dict:
         for i, line in enumerate(fobj):
             try:
-                word, count = line.strip('\r\n ').split(' ')
+                word, count = line.strip(strip_chars).split(split_char)
             except:
                 print('Failed reading vocabulary file at line {0}: {1}'.format(i, line))
                 sys.exit(1)
@@ -91,13 +93,13 @@ def get_vocabulary(fobj, is_dict=False, num_workers=1):
         if num_workers > 1:
             warnings.warn("In parallel mode, the input cannot be STDIN. Using 1 processor instead.")
         for i, line in enumerate(fobj):
-            for word in line.strip('\r\n ').split(' '):
+            for word in line.strip(strip_chars).split(split_char):
                 if word:
                     vocab[word] += 1
     elif num_workers > 1:
 
-        if sys.version_info < (3, 0):
-            print("Parallel mode is only supported in Python3.")
+        if is_bytes:
+            print('byte-level BPE not yet ported to parallel mode')
             sys.exit(1)
 
         with open(fobj.name, encoding="utf8") as f:
@@ -231,13 +233,23 @@ def get_pair_statistics(vocab):
     return stats, indices
 
 
-def replace_pair(pair, vocab, indices):
+def replace_pair(pair, vocab, indices, is_bytes=False):
     """Replace all occurrences of a symbol pair ('A', 'B') with a new symbol 'AB'"""
+
+    split_char = b' ' if is_bytes else ' '
     first, second = pair
-    pair_str = ''.join(pair)
-    pair_str = pair_str.replace('\\','\\\\')
+
+    if is_bytes:
+        pair_str = b''.join(pair)
+        # first = bytes((first,))
+        # second = bytes((second,))
+        pair_str = pair_str.replace(b'\\',b'\\\\')
+        pattern = re.compile(rb'(?<!\S)' + re.escape(first + split_char + second) + rb'(?!\S)')
+    else:
+        pair_str = ''.join(pair)
+        pair_str = pair_str.replace('\\','\\\\')
+        pattern = re.compile(r'(?<!\S)' + re.escape(first + split_char + second) + r'(?!\S)')
     changes = []
-    pattern = re.compile(r'(?<!\S)' + re.escape(first + ' ' + second) + r'(?!\S)')
     if sys.version_info < (3, 0):
         iterator = indices[pair].iteritems()
     else:
@@ -246,9 +258,9 @@ def replace_pair(pair, vocab, indices):
         if freq < 1:
             continue
         word, freq = vocab[j]
-        new_word = ' '.join(word)
+        new_word = split_char.join(word)
         new_word = pattern.sub(pair_str, new_word)
-        new_word = tuple(new_word.split(' '))
+        new_word = tuple(new_word.split(split_char))
 
         vocab[j] = (new_word, freq)
         changes.append((j, new_word, word, freq))
@@ -271,16 +283,22 @@ def prune_stats(stats, big_stats, threshold):
                 big_stats[item] = freq
 
 
-def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, total_symbols=False, num_workers=1):
+def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_dict=False, is_bytes=False, total_symbols=False, num_workers=1):
     """Learn num_symbols BPE operations from vocabulary, and write to outfile.
     """
 
     # version 0.2 changes the handling of the end-of-word token ('</w>');
     # version numbering allows bckward compatibility
-    outfile.write('#version: 0.2\n')
+    if is_bytes:
+        outfile.write(b'#version: 0.2 byte\n')
+    else:
+        outfile.write('#version: 0.2\n')
 
-    vocab = get_vocabulary(infile, is_dict, num_workers)
-    vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
+    vocab = get_vocabulary(infile, is_dict, is_bytes, num_workers)
+    if is_bytes:
+        vocab = dict([(tuple(map(lambda b: bytes([b]), x[:-1]))+(x[-1:]+b'</w>',) ,y) for (x,y) in vocab.items()])
+    else:
+        vocab = dict([(tuple(x[:-1])+(x[-1]+'</w>',) ,y) for (x,y) in vocab.items()])
     sorted_vocab = sorted(vocab.items(), key=lambda x: x[1], reverse=True)
 
     stats, indices = get_pair_statistics(sorted_vocab)
@@ -319,8 +337,11 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
 
         if verbose:
             sys.stderr.write('pair {0}: {1} {2} -> {1}{2} (frequency {3})\n'.format(i, most_frequent[0], most_frequent[1], stats[most_frequent]))
-        outfile.write('{0} {1}\n'.format(*most_frequent))
-        changes = replace_pair(most_frequent, sorted_vocab, indices)
+        if is_bytes:
+            outfile.write(most_frequent[0] + b' ' + most_frequent[1] + b'\n')
+        else:
+            outfile.write('{0} {1}\n'.format(*most_frequent))
+        changes = replace_pair(most_frequent, sorted_vocab, indices, is_bytes)
         update_pair_statistics(most_frequent, changes, stats, indices)
         stats[most_frequent] = 0
         if not i % 100:
@@ -337,33 +358,34 @@ if __name__ == '__main__':
             DeprecationWarning
         )
 
-    # python 2/3 compatibility
-    if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
+    parser = create_parser()
+    args = parser.parse_args()
+
+    if not args.byte:
         sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
         sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
         sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
 
-    parser = create_parser()
-    args = parser.parse_args()
-
     if args.num_workers <= 0:
         args.num_workers = cpu_count()
 
-    if sys.version_info < (3, 0) and args.num_workers > 1:
-        args.num_workers = 1
-        warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
+    if sys.version_info < (3, 0):
+        print("Python 2 is deprecated. Use Python 3")
+        sys.exit(1)
 
     # read/write files as UTF-8
-    if args.input.name != '<stdin>':
+    if args.input.name != '<stdin>' and not args.byte:
         args.input = codecs.open(args.input.name, encoding='utf-8')
-    if args.output.name != '<stdout>':
+    if args.output.name != '<stdout>' and not args.byte:
         args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
 
-    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, total_symbols=args.total_symbols, num_workers=args.num_workers)
+    if args.byte:
+        if args.input.name == '<stdin>':
+            args.input = sys.stdin.buffer
+        if args.output.name == '<stdout>':
+            args.output = sys.stdout.buffer
+
+    learn_bpe(args.input, args.output, args.symbols, args.min_frequency, args.verbose, is_dict=args.dict_input, is_bytes=args.byte, total_symbols=args.total_symbols, num_workers=args.num_workers)
 
     # close files
     if args.input.name != '<stdin>':

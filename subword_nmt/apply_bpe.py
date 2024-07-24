@@ -24,34 +24,43 @@ import warnings
 import random
 import tempfile
 from multiprocessing import Pool, cpu_count
-
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
+from contextlib import contextmanager
 
 class BPE(object):
 
-    def __init__(self, codes, merges=-1, separator='@@', vocab=None, glossaries=None):
+    def __init__(self, codes, merges=-1, separator='@@', vocab=None, glossaries=None, is_bytes=False):
 
         codes.seek(0)
         offset=1
 
         # check version information
-        firstline = codes.readline()
-        if firstline.startswith('#version:'):
-            self.version = tuple([int(x) for x in re.sub(r'(\.0+)*$','', firstline.split()[-1]).split(".")])
+        if is_bytes:
+            firstline = codes.readline()
+            self.version = (0, 2)
             offset += 1
         else:
-            self.version = (0, 1)
-            codes.seek(0)
+            firstline = codes.readline()
+            if firstline.startswith('#version:'):
+                self.version = tuple([int(x) for x in re.sub(r'(\.0+)*$','', firstline.split()[-1]).split(".")])
+                offset += 1
+            else:
+                self.version = (0, 1)
+                codes.seek(0)
 
-        self.bpe_codes = [tuple(item.strip('\r\n ').split(' ')) for (n, item) in enumerate(codes.read().rstrip('\n').split('\n')) if (n < merges or merges == -1)]
+
+        self.strip_chars = b'\r\n ' if is_bytes else '\r\n '
+        self.newline_char = b'\n' if is_bytes else '\n'
+        self.split_char = b' ' if is_bytes else ' '
+
+        self.bpe_codes = [tuple(item.strip(self.strip_chars).split(self.split_char)) for (n, item) in enumerate(codes.read().rstrip(self.newline_char).split(self.newline_char)) if (n < merges or merges == -1)]
 
         for i, item in enumerate(self.bpe_codes):
             if len(item) != 2:
-                sys.stderr.write('Error: invalid line {0} in BPE codes file: {1}\n'.format(i+offset, ' '.join(item)))
+                sys.stderr.write('Error: invalid line {0} in BPE codes file: {1}\n'.format(i+offset, self.split_char.join(item)))
                 sys.stderr.write('The line should exist of exactly two subword units, separated by whitespace\n')
                 sys.exit(1)
+
+        self.is_bytes = is_bytes
 
         # some hacking to deal with duplicates (only consider first instance)
         self.bpe_codes = dict([(code,i) for (i,code) in reversed(list(enumerate(self.bpe_codes)))])
@@ -62,22 +71,30 @@ class BPE(object):
 
         self.vocab = vocab
 
-        self.glossaries = glossaries if glossaries else []
+        if glossaries:
+            if is_bytes:
+                glossaries = [item.encode('utf-8') for item in glossaries]
+                self.glossaries_regex = re.compile(b'^(' + b'|'.join(glossaries) + b')$')
+            else:
+                self.glossaries_regex = re.compile('^({})$'.format('|'.join(glossaries)))
+        else:
+            self.glossaries_regex = None
 
-        self.glossaries_regex = re.compile('^({})$'.format('|'.join(glossaries))) if glossaries else None
+        self.glossaries = glossaries if glossaries else []
 
         self.cache = {}
 
     def process_lines(self, filename, outfile, dropout=0, num_workers=1):
 
-        if sys.version_info < (3, 0):
-            print("Parallel mode is only supported in Python3.")
+        if sys.version_info < (3, 0) :
+            print("Parallel mode is only supported in Python3")
             sys.exit(1)
 
         if num_workers == 1:
             _process_lines(self, filename, outfile, dropout, 0, 0)
         elif num_workers > 1:
-            with open(filename, encoding="utf-8") as f:
+            mode = 'rb' if self.is_bytes else 'r'
+            with open_file(filename, mode) as f:
                 size = os.fstat(f.fileno()).st_size
                 chunk_size = int(size / num_workers)
                 offsets = [0 for _ in range(num_workers + 1)]
@@ -103,7 +120,7 @@ class BPE(object):
             pool.close()
             pool.join()
             for i in range(num_workers):
-                with open(res_files[i].name, encoding="utf-8") as fi:
+                with open_file(res_files[i].name, mode) as fi:
                     for line in fi:
                         outfile.write(line)
                 os.remove(res_files[i].name)
@@ -113,15 +130,15 @@ class BPE(object):
     def process_line(self, line, dropout=0):
         """segment line, dealing with leading and trailing whitespace"""
 
-        out = ""
+        out = b"" if self.is_bytes else ""
 
-        leading_whitespace = len(line)-len(line.lstrip('\r\n '))
+        leading_whitespace = len(line)-len(line.lstrip(self.strip_chars))
         if leading_whitespace:
             out += line[:leading_whitespace]
 
         out += self.segment(line, dropout)
 
-        trailing_whitespace = len(line)-len(line.rstrip('\r\n '))
+        trailing_whitespace = len(line)-len(line.rstrip(self.strip_chars))
         if trailing_whitespace and trailing_whitespace != len(line):
             out += line[-trailing_whitespace:]
 
@@ -129,8 +146,8 @@ class BPE(object):
 
     def segment(self, sentence, dropout=0):
         """segment single sentence (whitespace-tokenized string) with BPE encoding"""
-        segments = self.segment_tokens(sentence.strip('\r\n ').split(' '), dropout)
-        return ' '.join(segments)
+        segments = self.segment_tokens(sentence.strip(self.strip_chars).split(self.split_char), dropout)
+        return self.split_char.join(segments)
 
     def segment_tokens(self, tokens, dropout=0):
         """segment a sequence of tokens with BPE encoding"""
@@ -148,6 +165,7 @@ class BPE(object):
                                           self.version,
                                           self.cache,
                                           self.glossaries_regex,
+                                          self.is_bytes,
                                           dropout)]
 
             for item in new_word[:-1]:
@@ -160,15 +178,19 @@ class BPE(object):
         word_segments = [word]
         for gloss in self.glossaries:
             word_segments = [out_segments for segment in word_segments
-                                 for out_segments in isolate_glossary(segment, gloss)]
+                                 for out_segments in isolate_glossary(segment, gloss, self.is_bytes)]
         return word_segments
 
 def _process_lines(bpe, filename, outfile, dropout, begin, end):
+
+    write_mode = 'wb' if bpe.is_bytes else 'w'
+    read_mode = 'rb' if bpe.is_bytes else 'r'
+
     if isinstance(outfile, str):
-        fo = open(outfile, "w", encoding="utf-8")
+        fo = open_file(outfile, write_mode)
     else:
         fo = outfile
-    with open(filename, encoding="utf-8") as f:
+    with open_file(filename, read_mode) as f:
         f.seek(begin)
         line = f.readline()
         while line:
@@ -180,6 +202,17 @@ def _process_lines(bpe, filename, outfile, dropout, begin, end):
             line = f.readline()
     if isinstance(outfile, str):
         fo.close()
+
+@contextmanager
+def open_file(filename, mode):
+    if mode in ('r', 'w'):
+        f = open(filename, mode, encoding="utf-8")
+    elif mode in ('rb', 'wb'):
+        f = open(filename, mode)
+    try:
+        yield f
+    finally:
+        f.close()
 
 def create_parser(subparsers=None):
 
@@ -193,11 +226,11 @@ def create_parser(subparsers=None):
             description="learn BPE-based word segmentation")
 
     parser.add_argument(
-        '--input', '-i', type=argparse.FileType('r'), default=sys.stdin,
+        '--input', '-i', type=argparse.FileType('rb'), default=sys.stdin,
         metavar='PATH',
         help="Input file (default: standard input).")
     parser.add_argument(
-        '--codes', '-c', type=argparse.FileType('r'), metavar='PATH',
+        '--codes', '-c', type=argparse.FileType('rb'), metavar='PATH',
         required=True,
         help="File with BPE codes (created by learn_bpe.py).")
     parser.add_argument(
@@ -206,14 +239,14 @@ def create_parser(subparsers=None):
         help="Use this many BPE operations (<= number of learned symbols)"+
              "default: Apply all the learned merge operations")
     parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), default=sys.stdout,
+        '--output', '-o', type=argparse.FileType('wb'), default=sys.stdout,
         metavar='PATH',
         help="Output file (default: standard output)")
     parser.add_argument(
-        '--separator', '-s', type=str, default='@@', metavar='STR',
+        '--separator', '-s', type=bytes, default=b'@@', metavar='STR',
         help="Separator between non-final subword units (default: '%(default)s'))")
     parser.add_argument(
-        '--vocabulary', type=argparse.FileType('r'), default=None,
+        '--vocabulary', type=argparse.FileType('rb'), default=None,
         metavar="PATH",
         help="Vocabulary file (built with get_vocab.py). If provided, this script reverts any merge operations that produce an OOV.")
     parser.add_argument(
@@ -240,7 +273,7 @@ def create_parser(subparsers=None):
 
     return parser
 
-def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries_regex=None, dropout=0):
+def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache, glossaries_regex=None, is_bytes=False, dropout=0):
     """Encode word based on list of BPE merge operations, which are applied consecutively
     """
 
@@ -252,12 +285,16 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
         return (orig,)
 
     if len(orig) == 1:
-        return orig
+        return (orig,)
 
-    if version == (0, 1):
+    eow = b'</w>' if is_bytes else '</w>'
+
+    if is_bytes:
+        word = list(map(lambda b: bytes([b]), orig[:-1])) + [orig[-1:] + eow]
+    elif version == (0, 1):
         word = list(orig) + ['</w>']
     elif version == (0, 2): # more consistent handling of word-final segments
-        word = list(orig[:-1]) + [orig[-1] + '</w>']
+        word = list(orig[:-1]) + [orig[-1] + eow]
     else:
         raise NotImplementedError
 
@@ -277,7 +314,10 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
 
         i = 0
         new_word = []
-        bigram = ''.join(bigram)
+        if is_bytes:
+            bigram = b''.join(bigram)
+        else:
+            bigram = ''.join(bigram)
         for j in positions:
             # merges are invalid if they start before current position. This can happen if there are overlapping pairs: (x x x -> xx x)
             if j < i:
@@ -289,9 +329,9 @@ def encode(orig, bpe_codes, bpe_codes_reverse, vocab, separator, version, cache,
         word = new_word
 
     # don't print end-of-word symbols
-    if word[-1] == '</w>':
+    if word[-1] == eow:
         word = word[:-1]
-    elif word[-1].endswith('</w>'):
+    elif word[-1].endswith(eow):
         word[-1] = word[-1][:-4]
 
     word = tuple(word)
@@ -367,7 +407,7 @@ def read_vocabulary(vocab_file, threshold):
 
     return vocabulary
 
-def isolate_glossary(word, glossary):
+def isolate_glossary(word, glossary, is_bytes=False):
     """
     Isolate a glossary present inside a word.
 
@@ -376,14 +416,34 @@ def isolate_glossary(word, glossary):
     For example, if 'USA' is the glossary and '1934USABUSA' the word, the return value is:
         ['1934', 'USA', 'B', 'USA']
     """
+
+    if is_bytes:
+        pattern = b'^'+glossary+b'$'
+    else:
+        pattern = '^'+glossary+'$'
+    strip_chars = b'\r\n ' if is_bytes else '\r\n '
+    empty_string = b'' if is_bytes else ''
+
     # regex equivalent of (if word == glossary or glossary not in word)
-    if re.match('^'+glossary+'$', word) or not re.search(glossary, word):
+    if re.match(pattern, word) or not re.search(glossary, word):
         return [word]
     else:
-        segments = re.split(r'({})'.format(glossary), word)
-        segments, ending = segments[:-1], segments[-1]
+        if is_bytes:
+            segments = re.split(rb'(' + glossary + rb')', word)
+            segments, ending = segments[:-1], segments[-1:]
+        else:
+            segments = re.split(r'({})'.format(glossary), word)
+            segments, ending = segments[:-1], segments[-1]
         segments = list(filter(None, segments)) # Remove empty strings in regex group.
-        return segments + [ending.strip('\r\n ')] if ending != '' else segments
+        return segments + [ending[0].strip(strip_chars)] if ending != empty_string else segments
+
+# first line of BPE code file indicates if it is byte-level or UTF-8
+def get_byte_mode(code_file_name):
+    firstline = open(code_file_name, mode='rb').readline()
+    if firstline.endswith(b'byte\n'):
+        return True
+    else:
+        return False
 
 if __name__ == '__main__':
 
@@ -397,9 +457,8 @@ if __name__ == '__main__':
 
     # python 2/3 compatibility
     if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
+        print("Python 2 is deprecated. Use Python 3")
+        sys.exit(1)
     else:
         sys.stdin = io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8')
         sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
@@ -411,33 +470,37 @@ if __name__ == '__main__':
     if args.num_workers <= 0:
         args.num_workers = cpu_count()
 
-    # read/write files as UTF-8
+    # check if codes are bytes or UTF-8
+    is_bytes = get_byte_mode(args.codes.name)
 
-    args.codes = codecs.open(args.codes.name, encoding='utf-8')
-    if args.input.name != '<stdin>':
-        args.input = codecs.open(args.input.name, encoding='utf-8')
-    if args.output.name != '<stdout>':
-        args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
-    if args.vocabulary:
-        args.vocabulary = codecs.open(args.vocabulary.name, encoding='utf-8')
+    args.separator = args.separator.decode('UTF-8') if not is_bytes else args.separator
+
+    # read/write files as bytes or UTF-8, depending on mode
+
+    if is_bytes:
+        if args.input.name == '<stdin>':
+            args.input = sys.stdin.buffer
+        if args.output.name == '<stdout>':
+            args.output = sys.stdout.buffer
+    else:
+        args.codes = codecs.open(args.codes.name, encoding='utf-8')
+        if args.input.name != '<stdin>':
+            args.input = codecs.open(args.input.name, encoding='utf-8')
+        if args.output.name != '<stdout>':
+            args.output = codecs.open(args.output.name, 'w', encoding='utf-8')
+        if args.vocabulary:
+            args.vocabulary = codecs.open(args.vocabulary.name, encoding='utf-8')
+
 
     if args.vocabulary:
         vocabulary = read_vocabulary(args.vocabulary, args.vocabulary_threshold)
     else:
         vocabulary = None
 
-    if sys.version_info < (3, 0):
-        args.separator = args.separator.decode('UTF-8')
-        if args.glossaries:
-            args.glossaries = [g.decode('UTF-8') for g in args.glossaries]
-        if args.num_workers > 1:
-            args.num_workers = 1
-            warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
-
     if args.seed is not None:
         random.seed(args.seed)
 
-    bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries)
+    bpe = BPE(args.codes, args.merges, args.separator, vocabulary, args.glossaries, is_bytes)
 
     if args.input.name == '<stdin>' or args.num_workers == 1:
         if args.num_workers > 1:

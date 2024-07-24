@@ -32,10 +32,6 @@ else:
     from . import learn_bpe
     from . import apply_bpe
 
-# hack for python2/3 compatibility
-from io import open
-argparse.open = open
-
 def create_parser(subparsers=None):
 
     if subparsers:
@@ -48,21 +44,24 @@ def create_parser(subparsers=None):
             description="learn BPE-based word segmentation")
 
     parser.add_argument(
-        '--input', '-i', type=argparse.FileType('r'), required=True, nargs = '+',
+        '--input', '-i', type=argparse.FileType('rb'), required=True, nargs = '+',
         metavar='PATH',
         help="Input texts (multiple allowed).")
     parser.add_argument(
-        '--output', '-o', type=argparse.FileType('w'), required=True,
+        '--output', '-o', type=argparse.FileType('wb'), required=True,
         metavar='PATH',
         help="Output file for BPE codes.")
     parser.add_argument(
         '--symbols', '-s', type=int, default=10000,
         help="Create this many new symbols (each representing a character n-gram) (default: %(default)s)")
     parser.add_argument(
-        '--separator', type=str, default='@@', metavar='STR',
+        '--byte', '-b', action="store_true",
+        help="byte-level BPE.")
+    parser.add_argument(
+        '--separator', type=bytes, default=b'@@', metavar='STR',
         help="Separator between non-final subword units (default: '%(default)s')")
     parser.add_argument(
-        '--write-vocabulary', type=argparse.FileType('w'), required=True, nargs = '+', default=None,
+        '--write-vocabulary', type=argparse.FileType('wb'), required=True, nargs = '+', default=None,
         metavar='PATH', dest='vocab',
         help='Write to these vocabulary files after applying BPE. One per input text. Used for filtering in apply_bpe.py')
     parser.add_argument(
@@ -86,45 +85,78 @@ def learn_joint_bpe_and_vocab(args):
         sys.stderr.write('Error: number of input files and vocabulary files must match\n')
         sys.exit(1)
 
-    # read/write files as UTF-8
-    args.input = [codecs.open(f.name, encoding='UTF-8') for f in args.input]
-    args.vocab = [codecs.open(f.name, 'w', encoding='UTF-8') for f in args.vocab]
+    if args.byte:
+        # read/write files as byte streams
+        args.input = [codecs.open(f.name, 'rb') for f in args.input]
+        args.vocab = [codecs.open(f.name, 'wb') for f in args.vocab]
+    else:
+        # read/write files as UTF-8
+        args.input = [codecs.open(f.name, encoding='UTF-8') for f in args.input]
+        args.vocab = [codecs.open(f.name, 'w', encoding='UTF-8') for f in args.vocab]
+
+    args.separator = args.separator.decode('UTF-8') if not args.byte else args.separator
 
     # get combined vocabulary of all input texts
     full_vocab = Counter()
     for f in args.input:
-        full_vocab += learn_bpe.get_vocabulary(f, num_workers=args.num_workers)
+        full_vocab += learn_bpe.get_vocabulary(f, num_workers=args.num_workers, is_bytes=args.byte)
         f.seek(0)
 
-    vocab_list = ['{0} {1}'.format(key, freq) for (key, freq) in full_vocab.items()]
+    if args.byte:
+        vocab_list = [key + b' ' + str(freq).encode('UTF-8') for (key, freq) in full_vocab.items()]
+    else:
+        vocab_list = ['{0} {1}'.format(key, freq) for (key, freq) in full_vocab.items()]
 
     # learn BPE on combined vocabulary
-    with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
-        learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True, total_symbols=args.total_symbols)
 
-    with codecs.open(args.output.name, encoding='UTF-8') as codes:
-        bpe = apply_bpe.BPE(codes, separator=args.separator)
+    if args.byte:
+        with open(args.output.name, 'wb') as output:
+            learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True, is_bytes=args.byte, total_symbols=args.total_symbols)
+
+        with open(args.output.name, 'rb') as codes:
+            bpe = apply_bpe.BPE(codes, separator=args.separator, is_bytes=args.byte)
+    else:
+        with codecs.open(args.output.name, 'w', encoding='UTF-8') as output:
+            learn_bpe.learn_bpe(vocab_list, output, args.symbols, args.min_frequency, args.verbose, is_dict=True, is_bytes=args.byte, total_symbols=args.total_symbols)
+
+        with codecs.open(args.output.name, encoding='UTF-8') as codes:
+            bpe = apply_bpe.BPE(codes, separator=args.separator, is_bytes=args.byte)
 
     # apply BPE to each training corpus and get vocabulary
     for train_file, vocab_file in zip(args.input, args.vocab):
 
+        # read/write files as UTF-8
+        if not args.byte:
+            train_file = codecs.open(train_file.name, encoding='utf-8')
+            vocab_file = codecs.open(vocab_file.name, 'w', encoding='utf-8')
+
         tmp = tempfile.NamedTemporaryFile(delete=False)
         tmp.close()
 
-        tmpout = codecs.open(tmp.name, 'w', encoding='UTF-8')
+        if args.byte:
+            tmpout = open(tmp.name, 'wb')
+        else:
+            tmpout = codecs.open(tmp.name, 'w', encoding='UTF-8')
 
         train_file.seek(0)
         bpe.process_lines(train_file.name, tmpout, num_workers=args.num_workers)
 
         tmpout.close()
-        tmpin = codecs.open(tmp.name, encoding='UTF-8')
 
-        vocab = learn_bpe.get_vocabulary(tmpin, num_workers=args.num_workers)
+        if args.byte:
+            tmpin = open(tmp.name, 'rb')
+        else:
+            tmpin = codecs.open(tmp.name, encoding='UTF-8')
+
+        vocab = learn_bpe.get_vocabulary(tmpin, num_workers=args.num_workers, is_bytes=args.byte)
         tmpin.close()
         os.remove(tmp.name)
 
         for key, freq in sorted(vocab.items(), key=lambda x: x[1], reverse=True):
-            vocab_file.write("{0} {1}\n".format(key, freq))
+            if args.byte:
+                vocab_file.write(key + b" " + str(freq).encode('utf-8') + b"\n")
+            else:
+                vocab_file.write("{0} {1}\n".format(key, freq))
         train_file.close()
         vocab_file.close()
 
@@ -141,25 +173,18 @@ if __name__ == '__main__':
 
     # python 2/3 compatibility
     if sys.version_info < (3, 0):
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin)
-    else:
-        sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
-        sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
-        sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
+        print("Python 2 is deprecated. Use Python 3")
+        sys.exit(1)
+
+    sys.stderr = codecs.getwriter('UTF-8')(sys.stderr.buffer)
+    sys.stdout = codecs.getwriter('UTF-8')(sys.stdout.buffer)
+    sys.stdin = codecs.getreader('UTF-8')(sys.stdin.buffer)
 
     parser = create_parser()
     args = parser.parse_args()
 
     if args.num_workers <= 0:
         args.num_workers = cpu_count()
-
-    if sys.version_info < (3, 0):
-        args.separator = args.separator.decode('UTF-8')
-        if args.num_workers > 1:
-            args.num_workers = 1
-            warnings.warn("Parallel mode is only supported in Python3. Using 1 processor instead.")
 
     assert(len(args.input) == len(args.vocab))
 
