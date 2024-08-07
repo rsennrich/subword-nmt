@@ -93,7 +93,7 @@ On top of the basic BPE implementation, this repository supports:
   use the argument `--dropout 0.1` for `subword-nmt apply-bpe` to randomly drop out possible merges.
   Doing this on the training corpus can improve quality of the final system; at test time, use BPE without dropout.
   In order to obtain reproducible results, argument `--seed` can be used to set the random seed.
-  
+
   **Note:** In the original paper, the authors used BPE-Dropout on each new batch separately. You can copy the training corpus several times to get similar behavior to obtain multiple segmentations for the same sentence.
 
 - support for glossaries:
@@ -107,6 +107,11 @@ I am fl@@ y@@ ing to <@@ coun@@ tr@@ y@@ >@@ S@@ w@@ it@@ z@@ er@@ l@@ and@@ <@@
 echo "I am flying to <country>Switzerland</country> at noon ." | subword-nmt apply-bpe --codes subword_nmt/tests/data/bpe.ref --glossaries "<country>\w*</country>" "fly"
 I am fly@@ ing to <country>Switzerland</country> at no@@ on .
 ```
+
+- byte-level BPE: while BPE uses characters as basic units in Sennrich et al., 2016),
+  [Radford et al., 2019](https://d4mucfpksywv.cloudfront.net/better-language-models/language_models_are_unsupervised_multitask_learners.pdf)
+  use bytes as basic units. This can be enabled with the argument `--bytes` for `subword-nmt learn-bpe`.
+  When applying BPE with `subword-nmt apply-bpe`, no argument is necessary: whether characters or bytes are the basic units is stored in the first line of the BPE file.
 
 PUBLICATIONS
 ------------
