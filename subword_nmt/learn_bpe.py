@@ -329,10 +329,12 @@ def learn_bpe(infile, outfile, num_symbols, min_frequency=2, verbose=False, is_d
         num_symbols -= len(uniq_char_internal) + len(uniq_char_final)
 
     # threshold is inspired by Zipfian assumption, but should only affect speed
-    threshold = max(stats.values()) / 10
+    threshold = max(stats.values()) / 10 if stats else 0.0
     for i in tqdm(range(num_symbols)):
-        if stats:
-            most_frequent = max(stats, key=lambda x: (stats[x], x))
+        if not stats:
+            break
+
+        most_frequent = max(stats, key=lambda x: (stats[x], x))
 
         # we probably missed the best pair because of pruning; go back to full statistics
         if not stats or (i and stats[most_frequent] < threshold):
