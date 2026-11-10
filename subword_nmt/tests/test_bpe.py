@@ -79,5 +79,20 @@ class TestBPESegmentMethod(unittest.TestCase):
         out = self.bpe.process_line(orig)
         self.assertEqual(out, exp)
 
+    def test_no_pairs_does_not_crash(self):
+        """learn_bpe must not crash when there are no learnable pairs (empty pair stats)."""
+        import io
+        infile = io.StringIO('a\nb\nc\nd\n')
+        outfile = io.StringIO()
+        learn_bpe(infile, outfile, num_symbols=10)
+        self.assertEqual(outfile.getvalue(), '#version: 0.2\n')
+
+    def test_min_frequency_above_all_pairs(self):
+        """learn_bpe must stop gracefully when min_frequency exceeds every pair frequency."""
+        import io
+        infile = io.StringIO('a b\nc d\n')
+        outfile = io.StringIO()
+        learn_bpe(infile, outfile, num_symbols=5, min_frequency=2)
+        self.assertEqual(outfile.getvalue(), '#version: 0.2\n')
 if __name__ == '__main__':
     unittest.main()
